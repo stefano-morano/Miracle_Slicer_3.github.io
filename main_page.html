@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+ <!-- main page of the slicer -->
+    <head>
+        <title>Miracle Slicer 3</title>
+    </head>
+
+    <body>
+        <input type="file" accept="audio/*" id="fileInput">
+        <button onclick="loadFile()">Load file</button>
+        <button onclick="playAudioBuffer()">Play</button>
+        <canvas id="waveformCanvas" width="800" height="200"></canvas>
+
+        <script>
+            var context = new (window.AudioContext || window.webkitAudioContext)();
+            var audioBuffer;
+            function loadFile() {
+                console.log("chiamata loadFile");
+                var fileInput = document.getElementById('fileInput');
+
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert('Seleziona un file audio prima di procedere.');
+                return;
+                }
+
+                var audioFile = fileInput.files[0];
+                var reader = new FileReader();
+
+                reader.onload = function (event) {
+                    // Ottieni i dati audio dal risultato della lettura
+                    var audioData = event.target.result;                   
+
+                    // Decodifica i dati audio e salvali in un buffer
+                    context.decodeAudioData(audioData, 
+                        function(buffer){
+                            audioBuffer = buffer;
+                            alert('File audio caricato e salvato nel buffer: ', buffer)
+                        },
+                        function(error){
+                            alert('Errore durante la decodifica del file audio: ', error)
+                        }
+                    )
+                };
+
+                // Leggi il contenuto del file come array di byte
+                reader.readAsArrayBuffer(audioFile);
+                drawWaveform();
+            }
+
+            function playAudioBuffer() {
+                // Crea un nodo di sorgente audio
+                var source = context.createBufferSource();
+
+                // Collega il buffer all'AudioBufferSourceNode
+                source.buffer = audioBuffer;
+
+                // Collega il nodo di sorgente audio al contesto audio
+                source.connect(context.destination);
+
+                // Riproduci il suono
+                source.start(0);
+            }
+
+            function drawWaveform() {
+                var canvas = document.getElementById('waveformCanvas');
+                var ctx = canvas.getContext('2d');
+                var bufferData = audioBuffer.getChannelData(0);
+
+                ctx.fillStyle = 'rgb(0, 0, 0)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgb(255, 255, 255)';
+                ctx.beginPath();
+    
+                var sliceWidth = canvas.width * 1.0 / bufferData.length;
+                var x = 0;
+
+                for (var i = 0; i < bufferData.length; i++) {
+                    var y = (bufferData[i] + 1) * canvas.height / 2;
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+
+                    x += sliceWidth;
+                }
+
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+            }
+            window.onload = loadFile;
+
+        </script>
+    </body>
+
+</html>
