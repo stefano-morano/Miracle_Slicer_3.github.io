@@ -190,6 +190,7 @@ function invertBufferWaveform(startIndex, endIndex) {
     bufferData.reverse();
     audioBuffer.getChannelData(0).set(bufferData, startIndex);
     drawWaveform();
+
 }
 
 function drawVerticalLine(x) {
@@ -200,6 +201,18 @@ function drawVerticalLine(x) {
     ctx.moveTo(x, 0);
     ctx.lineTo(x, canvas.height);
     ctx.stroke();
+}
+
+function restoreLines(array){
+    if (array.lenght == 1){
+        return;
+    }
+
+    var canvas = document.getElementById('waveformCanvas');
+    var ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgb(255, 0, 0)'; // Linea rossa
+    
 }
 
         </script>
