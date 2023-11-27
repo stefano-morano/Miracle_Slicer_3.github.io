@@ -205,11 +205,18 @@ function drawVerticalLine(x) {
 
 function restoreLines(){
     var position;
+    var canvas = document.getElementById('waveformCanvas');
+    var ctx = canvas.getContext('2d');
+    
     for (var x=1; x<=index.lenght; x++){
-        position = (index[x-1] / audioBuffer.duration) * canvas.width;
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgb(255, 0, 0)'; 
+        position = (index[x]/audioBuffer.duration)*canvas.width;
         console.log(position);
-        drawVerticalLine(position);
+        ctx.moveTo(position, 0);
+        ctx.lineTo(position, canvas.height);
     }
+    ctx.stroke();
 }
 
         </script>
