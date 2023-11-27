@@ -2,93 +2,205 @@
  <!-- main page of the slicer -->
     <head>
         <title>Miracle Slicer 3</title>
+        <h1>Miracle Slicer 3</h1>
+        <style>
+            #slicer{
+                width: 450px;
+                height: 600px;
+                border: 5px solid black;
+                background-color: lightblue;
+                border-radius: 10px;
+                margin: auto;
+                justify-content: center;
+                align-items: center;
+            }
+
+            .button {
+                background-color: grey; /* Green */
+                border: none;
+                color: black;
+                padding: 15px 32px;
+                text-align: center;
+                position: relative;
+                text-decoration: none;
+                border-radius: 10px;
+                border: 2px solid black;
+                margin: 2px;
+                display: inline-block;
+                font-size: 16px;
+                cursor: pointer;
+                transition: 0.5;
+            }
+            
+            .button:hover{
+                background-color: lightgrey;
+            }
+
+            #waveform{
+                width: 440px;
+                height: 200px;
+                border: 5px solid black;
+                background-color: white;
+                border-radius: 10px;
+                margin: auto;
+                align-items: center;
+            }
+
+        </style>
     </head>
 
     <body>
-        <input type="file" accept="audio/*" id="fileInput">
-        <button onclick="loadFile()">Load file</button>
-        <button onclick="playAudioBuffer()">Play</button>
-        <canvas id="waveformCanvas" width="800" height="200"></canvas>
+        <div id="slicer">
+            <input class="button" type="file" accept="audio/*" id="fileInput">
+            <button class="button" onclick="loadFile()">Load file</button>
+            <button class="button" onclick="playAudioBuffer()">Play</button>
+            <button class="button" onclick="clear()">Clear</button>
+            <div id="waveform" style="position: relative;">
+                <canvas id="waveformCanvas" width="440" height="200" style="position: absolute; z-index: 1;"></canvas>
+            </div>
+        </div>
 
         <script>
             var context = new (window.AudioContext || window.webkitAudioContext)();
             var audioBuffer;
-            function loadFile() {
-                console.log("chiamata loadFile");
-                var fileInput = document.getElementById('fileInput');
+            var animationId;
+            var startTime;
+            var index = [0];
 
-                if (!fileInput.files || fileInput.files.length === 0) {
-                    alert('Seleziona un file audio prima di procedere.');
-                return;
-                }
+function loadFile() {
+    console.log("chiamata loadFile");
+    var fileInput = document.getElementById('fileInput');
 
-                var audioFile = fileInput.files[0];
-                var reader = new FileReader();
+    if (!fileInput.files || fileInput.files.length === 0) {
+        alert('Seleziona un file audio prima di procedere.');
+        return;
+    }
 
-                reader.onload = function (event) {
-                    // Ottieni i dati audio dal risultato della lettura
-                    var audioData = event.target.result;                   
+    var audioFile = fileInput.files[0];
+    var reader = new FileReader();
 
-                    // Decodifica i dati audio e salvali in un buffer
-                    context.decodeAudioData(audioData, 
-                        function(buffer){
-                            audioBuffer = buffer;
-                            alert('File audio caricato e salvato nel buffer: ', buffer)
-                        },
-                        function(error){
-                            alert('Errore durante la decodifica del file audio: ', error)
-                        }
-                    )
-                };
+    reader.onload = function (event) {
+        // Ottieni i dati audio dal risultato della lettura
+        var audioData = event.target.result;
 
-                // Leggi il contenuto del file come array di byte
-                reader.readAsArrayBuffer(audioFile);
-                drawWaveform();
+        context.decodeAudioData(audioData,
+            function(buffer){
+                audioBuffer = buffer;
+                alert('File audio caricato e salvato nel buffer: ', buffer);
+                drawWaveform(); 
+            },
+            function(error){
+                alert('Errore durante la decodifica del file audio: ', error);
             }
+        );
+    };
 
-            function playAudioBuffer() {
-                // Crea un nodo di sorgente audio
-                var source = context.createBufferSource();
+    reader.readAsArrayBuffer(audioFile);
+    index = addIndexInOrder(audioBuffer.duration);
+}
 
-                // Collega il buffer all'AudioBufferSourceNode
-                source.buffer = audioBuffer;
-
-                // Collega il nodo di sorgente audio al contesto audio
-                source.connect(context.destination);
-
-                // Riproduci il suono
-                source.start(0);
-            }
-
-            function drawWaveform() {
-                var canvas = document.getElementById('waveformCanvas');
-                var ctx = canvas.getContext('2d');
-                var bufferData = audioBuffer.getChannelData(0);
-
-                ctx.fillStyle = 'rgb(0, 0, 0)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.lineWidth = 2;
-                ctx.strokeStyle = 'rgb(255, 255, 255)';
-                ctx.beginPath();
+function playAudioBuffer() {
     
-                var sliceWidth = canvas.width * 1.0 / bufferData.length;
-                var x = 0;
+    var source = context.createBufferSource();
+    source.buffer = audioBuffer;
+    source.connect(context.destination);
+    source.onended = function() {
+        cancelAnimationFrame(animationId);
+    };
 
-                for (var i = 0; i < bufferData.length; i++) {
-                    var y = (bufferData[i] + 1) * canvas.height / 2;
-                    if (i === 0) {
-                        ctx.moveTo(x, y);
-                    } else {
-                        ctx.lineTo(x, y);
-                    }
+    startTime = context.currentTime;
+    animate();
+    source.start(0, 0, audioBuffer.duration);
+}
 
-                    x += sliceWidth;
-                }
+function animate() {
+    // Calcola il tempo trascorso dalla riproduzione iniziale
+    var currentTime = context.currentTime - startTime;
 
-                ctx.lineTo(canvas.width, canvas.height / 2);
-                ctx.stroke();
-            }
-            window.onload = loadFile;
+    // Chiamare la funzione per disegnare l'onda sonora
+    drawWaveform(currentTime);
+
+    // Richiamare se stessi per continuare l'animazione
+    animationId = requestAnimationFrame(animate);
+}
+
+function drawWaveform(currentTime) {
+    if (!audioBuffer) {
+        console.error('audioBuffer non è definito.');
+        return;
+    }
+
+    var canvas = document.getElementById('waveformCanvas');
+    var ctx = canvas.getContext('2d');
+    var bufferData = audioBuffer.getChannelData(0);
+
+    ctx.fillStyle = 'rgb(255, 255, 255)'; // Sfondo bianco
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgb(0, 0, 0)'; // Onda nera
+    ctx.beginPath();
+
+    var sliceWidth = canvas.width * 1.0 / bufferData.length;
+    var x = 0;
+
+    for (var i = 0; i < bufferData.length; i++) {
+        var y = (bufferData[i] + 1) * canvas.height / 2;
+        if (i === 0) {
+            ctx.moveTo(x, y);
+        } else {
+            ctx.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+    }
+
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+}
+
+document.getElementById('waveformCanvas').addEventListener('mousedown', function(event) {
+    var canvas = document.getElementById('waveformCanvas');
+    var rect = canvas.getBoundingClientRect();
+    var mouseX = event.clientX - rect.left;
+    var bufferIndex = (mouseX / canvas.width) * audioBuffer.duration;
+    addIndexInOrder(bufferIndex);
+    console.log(index);
+    drawVerticalLine(mouseX);
+});
+
+function addIndexInOrder(num) {
+    if (!index.includes(num)) {
+        index.push(num);
+        index.sort(function(a, b) {
+            return a - b;
+        });
+    }
+}
+
+function secondsToBufferIndex(time) {
+    return Math.floor(time * audioBuffer.sampleRate);
+}
+
+function invertBufferWaveform(startIndex, endIndex) {
+    if (!audioBuffer || startIndex < 0 || endIndex >= audioBuffer.length || startIndex >= endIndex) {
+        return;
+    }
+    var bufferData = audioBuffer.getChannelData(0).subarray(startIndex, endIndex + 1).slice();
+    bufferData.reverse();
+    audioBuffer.getChannelData(0).set(bufferData, startIndex);
+    drawWaveform();
+}
+
+function drawVerticalLine(x) {
+    var canvas = document.getElementById('waveformCanvas');
+    var ctx = canvas.getContext('2d');
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgb(255, 0, 0)'; // Linea rossa
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, canvas.height);
+    ctx.stroke();
+}
 
         </script>
     </body>
