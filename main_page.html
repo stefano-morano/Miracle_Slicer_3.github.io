@@ -58,6 +58,8 @@
             <div id="waveform" style="position: relative;">
                 <canvas id="waveformCanvas" width="440" height="200" style="position: absolute; z-index: 1;"></canvas>
             </div>
+            <label for="midiSelect">Seleziona un dispositivo MIDI:</label>
+            <select id="midiSelect"></select>
         </div>
 
         <script>
@@ -66,108 +68,199 @@
             var animationId;
             var startTime;
             var index = [0];
+            var selectedRange = [];
 
-function loadFile() {
-    console.log("chiamata loadFile");
-    var fileInput = document.getElementById('fileInput');
+            async function getMidi(){                                       //scan every midi inputs and add them to the select menu
+                var midi = await navigator.requestMIDIAccess();
+                const inputs = midi.inputs.values();
+                const midiSelect = document.getElementById('midiSelect');
+                for (const input of inputs) {
+                    const option = document.createElement('option');
+                    option.value = input.id;
+                    option.text = input.name;
+                    midiSelect.add(option);
+                }
 
-    if (!fileInput.files || fileInput.files.length === 0) {
-        alert('Seleziona un file audio prima di procedere.');
-        return;
-    }
+                var selectedInput = midi.inputs.get(midiSelect.value);      //the first input is selected by default
 
-    var audioFile = fileInput.files[0];
-    var reader = new FileReader();
+                midiSelect.addEventListener('change', (event) => {          //when a midi input is selected, the selectedInput variable is updated
+                    const selectedDeviceId = event.target.value;
+                    console.log(`Dispositivo MIDI selezionato: ${selectedDeviceId}`);
+                    selectedInput = midiAccess.inputs.get(selectedDeviceId);
+                });
 
-    reader.onload = function (event) {
-        // Ottieni i dati audio dal risultato della lettura
-        var audioData = event.target.result;
-
-        context.decodeAudioData(audioData,
-            function(buffer){
-                audioBuffer = buffer;
-                alert('File audio caricato e salvato nel buffer: ', buffer);
-                drawWaveform(); 
-            },
-            function(error){
-                alert('Errore durante la decodifica del file audio: ', error);
+                selectedInput.onmidimessage = function (event) {            //when a midi input message is received, the function is called
+                        if (event.data[0] == 144) {
+                            var note = map_note(event.data[1]);
+                            if (note < index.length - 1) {
+                                play(note);
+                            }
+                        } else {
+                            stop();
+                        }
+                };
             }
-        );
-    };
 
-    reader.readAsArrayBuffer(audioFile);
-    index = addIndexInOrder(audioBuffer.duration);
-}
+            getMidi();                                                      //call the function to scan midi inputs as first thing
+            
+            function loadFile() {                                           //load the audio file and save it in the buffer
+                console.log("chiamata loadFile");
+                var fileInput = document.getElementById('fileInput');
 
-function playAudioBuffer() {
-    
-    var source = context.createBufferSource();
-    source.buffer = audioBuffer;
-    source.connect(context.destination);
-    source.onended = function() {
-        cancelAnimationFrame(animationId);
-    };
+                if (!fileInput.files || fileInput.files.length === 0) {
+                    alert('Seleziona un file audio prima di procedere.');
+                    return;
+                }
 
-    startTime = context.currentTime;
-    animate();
-    source.start(0, 0, audioBuffer.duration);
-}
+                var audioFile = fileInput.files[0];
+                var reader = new FileReader();
 
-function animate() {
-    // Calcola il tempo trascorso dalla riproduzione iniziale
-    var currentTime = context.currentTime - startTime;
+                reader.onload = function (event) {
+                    var audioData = event.target.result;
+                    context.decodeAudioData(audioData,
+                        function(buffer){
+                            audioBuffer = buffer;
+                            addIndexInOrder(audioBuffer.duration);
+                            selectedRange[0] = 0;
+                            selectedRange[1] = audioBuffer.duration;
+                            alert('File audio caricato e salvato nel buffer: ', buffer);
+                            drawWaveform(); 
+                        },
+                        function(error){
+                            alert('Errore durante la decodifica del file audio: ', error);
+                        }
+                    );
+                };
+                reader.readAsArrayBuffer(audioFile);
+            }
 
-    // Chiamare la funzione per disegnare l'onda sonora
-    drawWaveform(currentTime);
+            function playAudioBuffer() {                                        //play the audio buffer
+                var source = context.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(context.destination);
+                source.onended = function() {
+                    cancelAnimationFrame(animationId);
+                };
 
-    // Richiamare se stessi per continuare l'animazione
-    animationId = requestAnimationFrame(animate);
-}
+                startTime = context.currentTime;
+                animate();
+                source.start(0, 0, audioBuffer.duration);
+            }
 
-function drawWaveform(currentTime) {
-    if (!audioBuffer) {
-        console.error('audioBuffer non è definito.');
-        return;
-    }
+            function play(note) {                                               //play the audio buffer from the selected note
+                var source = context.createBufferSource();
+                source.buffer = audioBuffer;
+                source.connect(context.destination);
+                source.start(0, index[note], index[note+1]-index[note]);
+            }
 
-    var canvas = document.getElementById('waveformCanvas');
-    var ctx = canvas.getContext('2d');
-    var bufferData = audioBuffer.getChannelData(0);
+            function animate() {
+                // Calcola il tempo trascorso dalla riproduzione iniziale
+                var currentTime = context.currentTime - startTime;
 
-    ctx.fillStyle = 'rgb(255, 255, 255)'; // Sfondo bianco
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                // Chiamare la funzione per disegnare l'onda sonora
+                drawWaveform(currentTime);
 
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgb(0, 0, 0)'; // Onda nera
-    ctx.beginPath();
+                // Richiamare se stessi per continuare l'animazione
+                animationId = requestAnimationFrame(animate);
+            }
 
-    var sliceWidth = canvas.width * 1.0 / bufferData.length;
-    var x = 0;
+            function mapKeyToNumber(key) {
+                switch (key) {
+                    case 'a':
+                        return 0;
+                    case 's':
+                        return 1;
+                    case 'd':
+                        return 2;
+                    case 'f':
+                        return 3;
+                    case 'g':
+                        return 4;
+                    case 'h':
+                        return 5;
+                    case 'j':
+                        return 6;
+                    case 'k':
+                        return 7;
+                    case 'l':
+                        return 8;
+                    default:
+                        return undefined;
+                }
+            }
 
-    for (var i = 0; i < bufferData.length; i++) {
-        var y = (bufferData[i] + 1) * canvas.height / 2;
-        if (i === 0) {
-            ctx.moveTo(x, y);
-        } else {
-            ctx.lineTo(x, y);
-        }
+            document.addEventListener('keydown', function(event) {
+                const keyPressed = event.key.toLowerCase(); 
+                const mappedNumber = mapKeyToNumber(keyPressed);
+                console.log(mappedNumber);
+                if (mappedNumber !== undefined && mappedNumber < index.lenght - 1) {
+                    play(mappedNumber);
+                }
+            });
 
-        x += sliceWidth;
-    }
+            function map_note(note){
+                var value = (note - 48) / 24;
+                return Math.round(value * 14) + 0;
+            }
 
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    ctx.stroke();
-}
+            function drawWaveform(currentTime) {                                //draw the waveform of the audio buffer
+                if (!audioBuffer) {
+                    console.error('audioBuffer non è definito.');
+                    return;
+                }
 
-document.getElementById('waveformCanvas').addEventListener('mousedown', function(event) {
-    var canvas = document.getElementById('waveformCanvas');
-    var rect = canvas.getBoundingClientRect();
-    var mouseX = event.clientX - rect.left;
-    var bufferIndex = (mouseX / canvas.width) * audioBuffer.duration;
-    addIndexInOrder(bufferIndex);
-    console.log(index);
-    drawVerticalLine(mouseX);
-});
+                var canvas = document.getElementById('waveformCanvas');
+                var ctx = canvas.getContext('2d');
+                var bufferData = audioBuffer.getChannelData(0);
+
+                ctx.fillStyle = 'rgb(255, 255, 255)'; // Sfondo bianco
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = 'rgb(0, 0, 0)'; // Onda nera
+                ctx.beginPath();
+
+                var sliceWidth = canvas.width * 1.0 / bufferData.length;
+                var x = 0;
+
+                for (var i = 0; i < bufferData.length; i++) {
+                    var y = (bufferData[i] + 1) * canvas.height / 2;
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    x += sliceWidth;
+                }
+
+                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.stroke();
+            }
+
+
+            document.getElementById('waveformCanvas').addEventListener('mousedown', function(event) {
+                event.preventDefault();
+                var canvas = document.getElementById('waveformCanvas');
+                var ctx = canvas.getContext('2d');
+                var rect = canvas.getBoundingClientRect();
+                var mouseX = event.clientX - rect.left;
+                var bufferIndex = (mouseX / canvas.width) * audioBuffer.duration;
+                if (event.button === 0) {
+                    var x = 0;
+                    while (index[x] > bufferIndex || index[x+1] < bufferIndex){
+                        x++;
+                    }
+                    selectedRange[0] = index[x];
+                    selectedRange[1] = index[x+1];
+                    ctx.fillStyle = 'rgba(255, 255, 0, 0.5)'; // Rettangolo giallo trasparente
+                    ctx.fillRect((index[x]/audioBuffer.duration)*canvas.width, 0, (index[x+1]/audioBuffer.duration)*canvas.width - (index[x]/audioBuffer.duration)*canvas.width, canvas.height);
+                } else if (event.button === 2) {
+                    addIndexInOrder(bufferIndex);
+                    console.log(index);
+                    drawVerticalLine(mouseX);
+                }
+            });
 
 function addIndexInOrder(num) {
     if (!index.includes(num)) {
