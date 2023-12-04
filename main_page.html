@@ -55,22 +55,37 @@
             <button class="button" onclick="loadFile()">Load file</button>
             <button class="button" onclick="playAudioBuffer()">Play</button>
             <button class="button" onclick="clear()">Clear</button>
-            <div id="waveform" style="position: relative;">
-                <canvas id="waveformCanvas" width="440" height="200" style="position: absolute; z-index: 1;"></canvas>
+            <div id="waveformContainer" style="position: relative;">
+                <canvas id="waveform" width="440" height="200" style="position: absolute"></canvas>
+                <canvas id="cursor" width="440" height="200" style="position: absolute"></canvas>
+                <canvas id="line" width="440" height="200" style="position: absolute"></canvas>
+                <canvas id="draw" width="440" height="200" style="position: absolute"></canvas>
             </div>
+            <br><br><br><br><br><br><br><br><br><br><br><br><br>
             <label for="midiSelect">Seleziona un dispositivo MIDI:</label>
             <select id="midiSelect"></select>
+            <button class="button" onclick="reverseWave()">Reverse</button>
+            <input type="number" id="inputAttack" min="0" max="10" value="0" step="0.2" onchange="changeAttack(this.value)">
+            <input type="range" id="panSlider" min="-1" max="1" value="0" step="0.01" onchange="updatePan()">Pan</input>
         </div>
 
         <script>
             var context = new (window.AudioContext || window.webkitAudioContext)();
             var audioBuffer;
+            var originalBuffer;
             var animationId;
             var startTime;
             var index = [0];
             var selectedRange = [];
+            var playback = false;
+            var panSliderValue = 0;
+            var source;
+            var canvas_waveform = document.getElementById('waveform');
+            var canvas_draw = document.getElementById('draw');
+            var canvas_line = document.getElementById('line');
+            var canvas_cursor = document.getElementById('cursor');
 
-            async function getMidi(){                                       //scan every midi inputs and add them to the select menu
+            async function getMidi(){                                                   //scan every midi inputs and add them to the select menu
                 var midi = await navigator.requestMIDIAccess();
                 const inputs = midi.inputs.values();
                 const midiSelect = document.getElementById('midiSelect');
@@ -81,15 +96,15 @@
                     midiSelect.add(option);
                 }
 
-                var selectedInput = midi.inputs.get(midiSelect.value);      //the first input is selected by default
+                var selectedInput = midi.inputs.get(midiSelect.value);                  //the first input is selected by default
 
-                midiSelect.addEventListener('change', (event) => {          //when a midi input is selected, the selectedInput variable is updated
+                midiSelect.addEventListener('change', (event) => {                      //when a midi input is selected, the selectedInput variable is updated
                     const selectedDeviceId = event.target.value;
                     console.log(`Dispositivo MIDI selezionato: ${selectedDeviceId}`);
                     selectedInput = midiAccess.inputs.get(selectedDeviceId);
                 });
 
-                selectedInput.onmidimessage = function (event) {            //when a midi input message is received, the function is called
+                selectedInput.onmidimessage = function (event) {                        //when a midi input message is received, the function is called
                         if (event.data[0] == 144) {
                             var note = map_note(event.data[1]);
                             if (note < index.length - 1) {
@@ -101,9 +116,9 @@
                 };
             }
 
-            getMidi();                                                      //call the function to scan midi inputs as first thing
+            getMidi();                                                                  //call the function to scan midi inputs as first thing
             
-            function loadFile() {                                           //load the audio file and save it in the buffer
+            function loadFile() {                                                       //load the audio file and save it in the buffer
                 console.log("chiamata loadFile");
                 var fileInput = document.getElementById('fileInput');
 
@@ -120,11 +135,13 @@
                     context.decodeAudioData(audioData,
                         function(buffer){
                             audioBuffer = buffer;
+                            originalBuffer = cloneBuffer();
                             addIndexInOrder(audioBuffer.duration);
                             selectedRange[0] = 0;
                             selectedRange[1] = audioBuffer.duration;
-                            alert('File audio caricato e salvato nel buffer: ', buffer);
+                            console.log('File audio caricato e salvato nel buffer: ', buffer);
                             drawWaveform(); 
+                            updatePan();
                         },
                         function(error){
                             alert('Errore durante la decodifica del file audio: ', error);
@@ -134,37 +151,76 @@
                 reader.readAsArrayBuffer(audioFile);
             }
 
-            function playAudioBuffer() {                                        //play the audio buffer
-                var source = context.createBufferSource();
-                source.buffer = audioBuffer;
-                source.connect(context.destination);
-                source.onended = function() {
-                    cancelAnimationFrame(animationId);
-                };
+            function cloneBuffer(){
+                newBuffer = context.createBuffer(
+                                audioBuffer.numberOfChannels,
+                                audioBuffer.length,
+                                audioBuffer.sampleRate
+                            );
+                for (let channel = 0; channel < newBuffer.numberOfChannels; channel++) {
+                    const newData = newBuffer.getChannelData(channel);
+                    const inputData = audioBuffer.getChannelData(channel);
+                    newData.set(inputData);
+                }
+                return newBuffer;
+            }
 
+            function playAudioBuffer() {                                        //play the audio buffer
+                source = context.createBufferSource();
+                source.buffer = audioBuffer;
+                var panNode = context.createStereoPanner();
+                panNode.pan.value = panSliderValue;
+                var gainNode = context.createGain();
+                gainNode.gain.value = 1;
+                source.connect(panNode);
+                panNode.connect(gainNode);
+                gainNode.connect(context.destination);
                 startTime = context.currentTime;
                 animate();
+                source.onended = function() {
+                    playback = false;
+                };
+                playback = true;
                 source.start(0, 0, audioBuffer.duration);
+                panNode.pan.setValueAtTime(panSliderValue, context.currentTime);
             }
 
             function play(note) {                                               //play the audio buffer from the selected note
-                var source = context.createBufferSource();
+                source = context.createBufferSource();
                 source.buffer = audioBuffer;
-                source.connect(context.destination);
+                var panNode = context.createStereoPanner();
+                panNode.pan.value = panSliderValue;
+                source.connect(panNode);
+                panNode.connect(context.destination);
+                source.onended = function() {
+                    playback = false;
+                };
+                playback = true;
                 source.start(0, index[note], index[note+1]-index[note]);
             }
 
             function animate() {
-                // Calcola il tempo trascorso dalla riproduzione iniziale
                 var currentTime = context.currentTime - startTime;
-
-                // Chiamare la funzione per disegnare l'onda sonora
-                drawWaveform(currentTime);
-
-                // Richiamare se stessi per continuare l'animazione
+                drawCursor(currentTime);
                 animationId = requestAnimationFrame(animate);
             }
 
+            function drawCursor(time){
+                var position = (time / audioBuffer.duration) * canvas_cursor.width;
+                var ctx = canvas_cursor.getContext('2d');
+                ctx.clearRect(0, 0, canvas_cursor.width, canvas_cursor.height);
+                ctx.beginPath();
+                ctx.strokeStyle = 'blue'; 
+                ctx.lineWidth=2;
+                ctx.moveTo(position, 0);
+                ctx.lineTo(position, canvas_cursor.height);
+                ctx.stroke();
+            }
+
+            /**
+             * Map the key pressed on the keyboard to the corresponding number of the slice.
+             * @input {string} the key pressed on the keyboard.
+             */
             function mapKeyToNumber(key) {
                 switch (key) {
                     case 'a':
@@ -190,11 +246,54 @@
                 }
             }
 
+            function changePitch(startSeconds, endSeconds, factor) {             //change the pitch of the audio buffer
+                if (!audioBuffer) {
+                    console.error('audioBuffer non è definito.');
+                    return;
+                }   
+                var startIndex = Math.floor(startSeconds * audioBuffer.sampleRate);
+                var endIndex = Math.floor(endSeconds * audioBuffer.sampleRate);
+                var bufferData = audioBuffer.getChannelData(0);
+
+                for (var i = startIndex; i <= endIndex; i++) {
+                    bufferData[i] *= factor;
+                }
+
+                drawWaveform();
+            }
+
+            function changeAttack(duration){
+                if (!audioBuffer) {
+                    console.error('audioBuffer non è definito.');
+                    return;
+                }
+                const leftChannel_audio = audioBuffer.getChannelData(0);
+                const rightChannel_audio = audioBuffer.getChannelData(1);
+                const leftChannel_original = originalBuffer.getChannelData(0);
+                const rightChannel_original = originalBuffer.getChannelData(1);
+                if (selectedRange[0] == 0 && selectedRange[1] == audioBuffer.duration){
+                    for (var x=0; x<index.length; x++){
+                        
+                    }
+                } else {
+                    const fadeInStart = secondsToBufferIndex(selectedRange[0]);
+                    const fadeInEnd = Math.min(
+                        secondsToBufferIndex(fadeInStart+duration),
+                        secondsToBufferIndex(selectedRange[1]-selectedRange[0]));
+                        console.log(leftChannel_audio[fadeInStart]);
+                    for (let i = fadeInStart; i < fadeInEnd; i++) {
+                        const fadeInProgress = (i - fadeInStart) / (fadeInEnd - fadeInStart);
+                        leftChannel_audio[i] = leftChannel_original[i] * fadeInProgress; 
+                        rightChannel_audio[i] = rightChannel_original[i] * fadeInProgress;
+                    }
+                    drawWaveform();
+                } 
+            }
+
             document.addEventListener('keydown', function(event) {
                 const keyPressed = event.key.toLowerCase(); 
                 const mappedNumber = mapKeyToNumber(keyPressed);
-                console.log(mappedNumber);
-                if (mappedNumber !== undefined && mappedNumber < index.lenght - 1) {
+                if (mappedNumber !== undefined && mappedNumber < index.length - 1) {
                     play(mappedNumber);
                 }
             });
@@ -210,22 +309,18 @@
                     return;
                 }
 
-                var canvas = document.getElementById('waveformCanvas');
-                var ctx = canvas.getContext('2d');
+                var ctx = canvas_waveform.getContext('2d');
                 var bufferData = audioBuffer.getChannelData(0);
-
-                ctx.fillStyle = 'rgb(255, 255, 255)'; // Sfondo bianco
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                ctx.lineWidth = 2;
+                ctx.clearRect(0, 0, canvas_waveform.width, canvas_waveform.height);
+                ctx.lineWidth = 0.4;
                 ctx.strokeStyle = 'rgb(0, 0, 0)'; // Onda nera
                 ctx.beginPath();
 
-                var sliceWidth = canvas.width * 1.0 / bufferData.length;
+                var sliceWidth = canvas_waveform.width * 1.0 / bufferData.length;
                 var x = 0;
 
                 for (var i = 0; i < bufferData.length; i++) {
-                    var y = (bufferData[i] + 1) * canvas.height / 2;
+                    var y = (bufferData[i] + 1) * canvas_waveform.height / 2;
                         if (i === 0) {
                             ctx.moveTo(x, y);
                         } else {
@@ -234,85 +329,104 @@
                     x += sliceWidth;
                 }
 
-                ctx.lineTo(canvas.width, canvas.height / 2);
+                ctx.lineTo(canvas_waveform.width, canvas_waveform.height / 2);
                 ctx.stroke();
             }
 
-
-            document.getElementById('waveformCanvas').addEventListener('mousedown', function(event) {
-                event.preventDefault();
-                var canvas = document.getElementById('waveformCanvas');
-                var ctx = canvas.getContext('2d');
-                var rect = canvas.getBoundingClientRect();
+            document.getElementById('draw').addEventListener('mousedown', function(event) {
+                
+                var rect = canvas_waveform.getBoundingClientRect();
                 var mouseX = event.clientX - rect.left;
-                var bufferIndex = (mouseX / canvas.width) * audioBuffer.duration;
-                if (event.button === 0) {
+                var bufferIndex = (mouseX / canvas_waveform.width) * audioBuffer.duration;
+                if (event.button === 0) {                       //left click
                     var x = 0;
                     while (index[x] > bufferIndex || index[x+1] < bufferIndex){
                         x++;
                     }
                     selectedRange[0] = index[x];
                     selectedRange[1] = index[x+1];
-                    ctx.fillStyle = 'rgba(255, 255, 0, 0.5)'; // Rettangolo giallo trasparente
-                    ctx.fillRect((index[x]/audioBuffer.duration)*canvas.width, 0, (index[x+1]/audioBuffer.duration)*canvas.width - (index[x]/audioBuffer.duration)*canvas.width, canvas.height);
-                } else if (event.button === 2) {
+                    drawRectangle((index[x]/audioBuffer.duration)*canvas_draw.width, (index[x+1]/audioBuffer.duration)*canvas_draw.width);
+                } else if (event.button === 2) {                //right click
+                    event.preventDefault();
                     addIndexInOrder(bufferIndex);
-                    console.log(index);
                     drawVerticalLine(mouseX);
                 }
             });
 
-function addIndexInOrder(num) {
-    if (!index.includes(num)) {
-        index.push(num);
-        index.sort(function(a, b) {
-            return a - b;
-        });
-    }
-}
+            function drawRectangle(x, y){                                       //draw the selection rectangle
+                console.log("disegna rettangolo");
+                ctx = canvas_draw.getContext('2d');
+                ctx.clearRect(0, 0, canvas_draw.width, canvas_draw.height);
+                ctx.fillStyle = 'rgba(255, 255, 0, 0.5)'; // Rettangolo giallo trasparente
+                ctx.fillRect(x, 0, y - x, canvas_draw.height);
+            }
 
-function secondsToBufferIndex(time) {
-    return Math.floor(time * audioBuffer.sampleRate);
-}
+            function addIndexInOrder(num) {
+                if (!index.includes(num)) {
+                    index.push(num);
+                    index.sort(function(a, b) {
+                        return a - b;
+                    });
+                }
+            }
+            
+            /**
+             * Convert seconds to the corresponding index in the audio buffer.
+             * @input {number} the time in seconds to convert. 
+             */
+            function secondsToBufferIndex(time) {                           
+                return Math.floor(time * audioBuffer.sampleRate);
+            }
 
-function invertBufferWaveform(startIndex, endIndex) {
-    if (!audioBuffer || startIndex < 0 || endIndex >= audioBuffer.length || startIndex >= endIndex) {
-        return;
-    }
-    var bufferData = audioBuffer.getChannelData(0).subarray(startIndex, endIndex + 1).slice();
-    bufferData.reverse();
-    audioBuffer.getChannelData(0).set(bufferData, startIndex);
-    drawWaveform();
-    restoreLines();
-}
+            /**
+             * Update the pan value of the audio source the pan slider change its value.
+             */
+            function updatePan() {
+                var panSlider = document.getElementById('panSlider');
+                panSliderValue = parseFloat(panSlider.value);
+                if (source && playback) {
+                    var panNode = source.pan;
+                    if (panNode) {
+                        panNode.pan.setValueAtTime(panSliderValue, context.currentTime);
+                    }
+                }
+            }
 
-function drawVerticalLine(x) {
-    var canvas = document.getElementById('waveformCanvas');
-    var ctx = canvas.getContext('2d');
-    ctx.beginPath();
-    ctx.strokeStyle = 'rgb(255, 0, 0)'; // Linea rossa
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, canvas.height);
-    ctx.stroke();
-}
+            function reverseWave() {                                        //reverse the audio buffer in the selected range
+                startIndex = secondsToBufferIndex(selectedRange[0]);
+                endIndex = secondsToBufferIndex(selectedRange[1]);
+                if (!audioBuffer || startIndex < 0 || endIndex >= audioBuffer.length || startIndex >= endIndex) {
+                    return;
+                }
+                var bufferData = audioBuffer.getChannelData(0).subarray(startIndex, endIndex + 1).slice();
+                bufferData.reverse();
+                audioBuffer.getChannelData(0).set(bufferData, startIndex);
+                bufferData = audioBuffer.getChannelData(1).subarray(startIndex, endIndex + 1).slice();
+                bufferData.reverse();
+                audioBuffer.getChannelData(1).set(bufferData, startIndex);
+                drawWaveform();
+            }
 
-function restoreLines(){
-    var position;
-    var canvas = document.getElementById('waveformCanvas');
-    var ctx = canvas.getContext('2d');
-    
-    for (var x=1; x<=index.lenght; x++){
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgb(255, 0, 0)'; 
-        position = (index[x]/audioBuffer.duration)*canvas.width;
-        console.log(position);
-        ctx.moveTo(position, 0);
-        ctx.lineTo(position, canvas.height);
-    }
-    ctx.stroke();
-}
+            function drawVerticalLine(x) {
+                console.log("disegna linea verticale");
+                var ctx = canvas_line.getContext('2d');
+                ctx.beginPath();
+                ctx.strokeStyle = 'rgb(255, 0, 0)'; // Linea rossa
+                ctx.lineWidth=2;
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas_line.height);
+                ctx.stroke();
+            }
 
+            function stop() {
+                if (source) {
+                    source.stop();
+                    cancelAnimationFrame(animationId);
+                }
+            }
         </script>
     </body>
+
+   
 
 </html>
