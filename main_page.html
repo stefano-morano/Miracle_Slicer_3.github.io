@@ -47,7 +47,8 @@
             }
 
         </style>
-        <script src="https://unpkg.com/tone"></script>
+        
+        
         
     </head>
 
@@ -73,16 +74,18 @@
             <input type="range" id="releaseSlider" min="0" max="0.5" step="0.01" value="0">Release</input> <br>
             <input type="range" id="volumeSlider" min="-40" max="15" step="1" value="0">Volume</input> <br>
             <input type="range" id="pitchShiftSlider" min="-24" max="24" step="1" value="0">Pitch</input> <br>
-            <input type="range" id="thresholdSlider" min="0" max="1" step="0.1" value="0.2">Threshold</input> <br>
+            <input type="range" id="thresholdSlider" min="0" max="2000" step="200" value="200">Threshold</input> <br>
         </div>
+        <script src="https://unpkg.com/tone"></script>
         <script src="https://unpkg.com/meyda@5.6.2/dist/web/meyda.min.js"></script>
         <script type="text/javascript" src="DSP.js"></script>
+        
         <script>
-            var context = new (window.AudioContext || window.webkitAudioContext)();
-            var animationId;
+            var context = new (window.AudioContext || window.webkitAudioContext)(); // Create an audio context
+            var animationId; // The ID of the animation frame
             var startTime;
-            var index = [0];
-            var selectedRange = [];
+            var index = [0]; // The array of the slice index
+            var selectedRange = []; // The array containing the selected range
             var attackArray = [];
             var realiseArray = [];
             var pitchArray = [];
@@ -93,6 +96,7 @@
             var panNode;
             var pitchNode;
             var originalBuffer;
+
             var thresholdValue = 0.2;
             const source = context.createBufferSource();
             
@@ -189,14 +193,17 @@
                 return newBuffer;
             }
 
-            thresholdSlider.addEventListener('input', function(event) {
+            thresholdSlider.addEventListener('change', function(event) {
                 thresholdValue = parseFloat(thresholdSlider.value);
                 console.log("Treshold: " + thresholdValue);
-                index = [];
-                addIndexInOrder(0);
-                addIndexInOrder(player.buffer.duration);
-                clear();
-                playSound();
+                if (adaptive){
+                    index = [];
+                    addIndexInOrder(0);
+                    addIndexInOrder(player.buffer.duration);
+                    clear();
+                    detectOnset(player.buffer);
+                    restoreLines();
+                }
             });
 
            
@@ -223,6 +230,10 @@
                 }                                          
             }
 
+            /**
+             * Function that implements the functionality of the adaptive button, activating it when it is pressed, 
+             * or disabling it when it is pressed again.
+             */
             function adaptiveClick(){
                 if (!adaptive){
                     document.getElementById('Adaptive').style.backgroundColor = 'blue';
@@ -231,7 +242,8 @@
                     addIndexInOrder(0);
                     addIndexInOrder(player.buffer.duration);
                     clear();
-                    playSound();
+                    detectOnset(player.buffer);
+                    restoreLines();
                 } else {
                     document.getElementById('Adaptive').style.backgroundColor = 'grey';
                     adaptive = false;
@@ -242,6 +254,9 @@
                 }
             }
 
+            /**
+             * Function that clear the canvas above the waveform.
+             */
             function clear(){
                 var ctx = canvas_line.getContext('2d');
                 ctx.clearRect(0, 0, canvas_line.width, canvas_line.height);
@@ -500,7 +515,7 @@
             });
 
             /**
-             * Event handler that catch the left mouse click and prevenet the context menu to appear.
+             * Event handler that catch the left mouse click and prevent the context menu to appear.
              */
             document.addEventListener('contextmenu', function (event) {
                 event.preventDefault();
@@ -579,6 +594,11 @@
                 drawWaveform();
             }
 
+
+            /**
+            * Function that draw a vertical line in the waveform at the x position
+            * @input {number} the x position of the line.
+            */
             function drawVerticalLine(x) {
                 console.log("disegna linea verticale");
                 var ctx = canvas_line.getContext('2d');
@@ -597,6 +617,9 @@
                 }
             }
 
+            /**
+             * Function that actives the eraser mode, deleting the slice when the right click is pressed.
+             */
             function erase(){
                 eraser = !eraser;
                 if (eraser){
@@ -615,73 +638,49 @@
                 }
             }
 
-            function playSound() {
-	            var bufferSamples = player.buffer.getChannelData(0);
-	        
-	            const SAMPLE_SIZE           = 1024;
-	            const FFT2SIZE              = 1024;
-	
-	            var fft  = new FFT(SAMPLE_SIZE, 44100);
-	            var fft2 = new FFT(FFT2SIZE,    44100 / SAMPLE_SIZE);
-	            var spectrum     = new Float32Array(SAMPLE_SIZE / 2);
-	            var prevSpectrum = new Float32Array(SAMPLE_SIZE / 2);
-	            var prunnedSpectralFlux = [];
-	            var splitSamples = [];
-	            var spectralFlux = [];
-	            var threshold    = [];
-	            var peaks        = [];
-	            var peakFreq     = [];
-	
-	            // Split samples into arrays of 1024
-	            for (let i = 0; i < bufferSamples.length; i += SAMPLE_SIZE) {
-		            splitSamples.push(bufferSamples.slice(i, i + SAMPLE_SIZE));
-	            }
-	
-	            // Calculate a spectral flux value for each sample range in the song
-	            for (let i = 0; i < splitSamples.length; i++) {
-		            // Samples must fill the full size to ensure a power of two for the FFT
-		            if (splitSamples[i].length !== SAMPLE_SIZE) break;
-		
-		            // Copy the current spectrum values into the previous
-		            for (let j = 0; j < spectrum.length; j++) {
-			            prevSpectrum[j] = spectrum[j];
-		            }
-		
-		            // Apply the Hamming function to clean up the audio signal
-		            //var windowFunction = new WindowFunction(WindowFunction.HAMMING);
-		            //var result = windowFunction.process(length, index);
-		
-		            // Update the current spectrum with the FFT bins for this sample range
-		            fft.forward(splitSamples[i]);
-		            spectrum = fft.spectrum;
-		
-		            // Spectral flux is the sum of all increasing (positive) differences in each bin and its corresponding bin from the previous sample
-		            var flux = 0;
-		
-		            // Caring only about rising matching bin deltas between this and the previous spectrum, sum all positive deltas to calculate total flux
-		            for (let bin = 0; bin < spectrum.length; bin++) {
-			            flux += Math.max(0, spectrum[bin] - prevSpectrum[bin]);
-		            }
-		
-		            // Save the calculated flux for this sample range
-		                spectralFlux.push(flux);
-	            }
-		
-	            // Calculate pruned flux values where the spectral flux exceeds the averaged threshold
-	            for (let i = 0; i < spectralFlux.length; i++) {
-		            // Save either zero or the difference from threshold to flux if positive
-		            prunnedSpectralFlux.push(Math.max(0, spectralFlux[i] - thresholdValue));
-	            }
-	
-	            // Remove all but the peaks of pruned spectral flux values, setting all else to zero
-	            for (let i = 0; i < prunnedSpectralFlux.length - 1; i++) {
-		            if (prunnedSpectralFlux[i] > prunnedSpectralFlux[i + 1]) {
-			            // This is higher than the next value, so save it
-			            addIndexInOrder(prunnedSpectralFlux[i]);
-		            }
-	            }
-        restoreLines();
-    }
+            function computeDFT(input) {
+                const N = input.length;
+                const output = new Array(N).fill(0);
+
+                for (let k = 0; k < N; k++) {
+                    let sumReal = 0;
+                    let sumImag = 0;
+                    for (let n = 0; n < N; n++) {
+                        const angle = (2 * Math.PI * k * n) / N;
+                        sumReal += input[n] * Math.cos(angle);
+                        sumImag -= input[n] * Math.sin(angle);
+                    }
+                    output[k] = Math.sqrt(sumReal * sumReal + sumImag * sumImag);
+                }
+                return output;
+            }
+
+            function detectOnset(audioBuffer) {
+                const audioData = audioBuffer.getChannelData(0); // Prende solo il canale sinistro
+                const bufferLength = audioBuffer.length;
+                const windowSize = 1024; // Dimensione della finestra per la DFT
+                const hopSize = 512; // Dimensione dello spostamento per la finestra
+
+                let currentPos = 0;
+
+                while (currentPos + windowSize < bufferLength) {
+                    const segment = audioData.slice(currentPos, currentPos + windowSize);
+                    const spectrum = computeDFT(segment);
+
+                    // Calcolo dell'energia dello spettro
+                    const energy = spectrum.reduce((acc, val) => acc + val, 0);
+                    let position = currentPos / audioBuffer.sampleRate;
+
+                    // Rilevamento dell'onset se l'energia supera una certa soglia (puoi aggiustare questo valore a seconda dei tuoi bisogni)
+                    if (energy > thresholdValue && index[index.length-2] < position - 0.2) {
+                        console.log("Onset detected at time: " + position + " seconds");
+                        addIndexInOrder(position+0.035);
+                    }
+                    currentPos += hopSize;
+                }
+                console.log(index.length-1);
+            }
+
 
         </script>
     </body>
