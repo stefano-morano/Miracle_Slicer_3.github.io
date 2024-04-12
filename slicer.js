@@ -1,223 +1,315 @@
-var context = new (window.AudioContext || window.webkitAudioContext)(); // Create an audio context
+    var context = new (window.AudioContext || window.webkitAudioContext)();                         // Create an audio context
 
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
 
-var animationId; // The ID of the animation frame
-var startTime;
-var index = [0]; // The array of the slice index
-var selectedRange = []; // The array containing the selected range
-var attackArray = [];
-var realiseArray = [];
-var pitchArray = [];
-var stateSelection = false;
-var eraser = false;
-var adaptive = false;
-var player;
-var panNode;
-var pitchNode;
-var originalBuffer;
+        var animationId; // The ID of the animation frame
+        var startTime;
+        var index = [0]; // The array of the slice index
+        var selectedRange = []; // The array containing the selected range
+        var attackArray = [];
+        var realiseArray = [];
+        var pitchArray = [];
+        var stateSelection = false;
+        var eraser = false;
+        var adaptive = false;
+        var player;
+        var panNode;
+        var pitchNode;
+        var originalBuffer;
+        var thresholdValue = 0.2;
+        const source = context.createBufferSource();
+        var canvas_waveform = document.getElementById('waveform');
+        var canvas_draw = document.getElementById('draw');
+        var canvas_line = document.getElementById('line');
+        var canvas_cursor = document.getElementById('cursor');
 
-var thresholdValue = 0.2;
-const source = context.createBufferSource();
+        /**
+            * Function that scan the midi inputs and add them to the select menu.
+        */
+        async function getMidi(){
+            var midi = await navigator.requestMIDIAccess();
+            const inputs = midi.inputs.values();
+            const midiSelect = document.getElementById('midiSelect');
+            for (const input of inputs) {
+                const option = document.createElement('option');
+                option.value = input.id;
+                option.text = input.name;
+                midiSelect.add(option);
+            }
 
-var canvas_waveform = document.getElementById('waveform');
-var canvas_draw = document.getElementById('draw');
-var canvas_line = document.getElementById('line');
-var canvas_cursor = document.getElementById('cursor');
+            var selectedInput = midi.inputs.get(midiSelect.value);                  //the first input is selected by default
 
-async function getMidi(){                                                   //scan every midi inputs and add them to the select menu
-    var midi = await navigator.requestMIDIAccess();
-    const inputs = midi.inputs.values();
-    const midiSelect = document.getElementById('midiSelect');
-    for (const input of inputs) {
-        const option = document.createElement('option');
-        option.value = input.id;
-        option.text = input.name;
-        midiSelect.add(option);
-    }
+            midiSelect.addEventListener('change', (event) => {                      //when a midi input is selected, the selectedInput variable is updated
+                const selectedDeviceId = event.target.value;
+                console.log(`Dispositivo MIDI selezionato: ${selectedDeviceId}`);
+                selectedInput = midiAccess.inputs.get(selectedDeviceId);
+            });
 
-    var selectedInput = midi.inputs.get(midiSelect.value);                  //the first input is selected by default
-
-    midiSelect.addEventListener('change', (event) => {                      //when a midi input is selected, the selectedInput variable is updated
-        const selectedDeviceId = event.target.value;
-        console.log(`Dispositivo MIDI selezionato: ${selectedDeviceId}`);
-        selectedInput = midiAccess.inputs.get(selectedDeviceId);
-    });
-
-    selectedInput.onmidimessage = function (event) {                        //when a midi input message is received, the function is called
-            if (event.data[0] == 144) {
+            selectedInput.onmidimessage = function (event) {                        //when a midi input message is received, the function is called
+                if (event.data[0] == 144) {
                 var note = map_note(event.data[1]);
-                if (note < index.length - 1) {
-                    play(note);
+                    if (note < index.length - 1) {
+                        play(note);
+                    }
+                } else {
+                    stop();
                 }
-            } else {
-                stop();
-            }
-    };
-}
+            };
+        }
 
-getMidi();                                                                //call the function to scan midi inputs as first thing
+        getMidi();                                                                                  //calls the function to scan midi inputs as first thing
 
-document.getElementById('loadButton').addEventListener('click', loadFile);    //add event listener to the load button
+        loadButton.addEventListener('click', loadFile);                                             //adds event listener to the load button and calls the respective function
 
-document.getElementById('playButton').addEventListener('click', playAudioBuffer); //add event listener to the play button
+        playButton.addEventListener('click', playAudioBuffer);                                      //adds event listener to the play button and calls the respective function
 
-document.getElementById('eraseButton').addEventListener('click', erase);    //add event listener to the erase button
+        eraseButton.addEventListener('click', erase);                                               //adds event listener to the erase button and calls the respective function
 
-document.getElementById('reverseButton').addEventListener('click', reverseWave); //add event listener to the reverse button
+        reverseButton.addEventListener('click', reverseWave);                                       //adds event listener to the reverse button and calls the respective function
 
-document.getElementById('adaptiveButton').addEventListener('click', adaptiveClick); //add event listener to the adaptive button
+        adaptiveButton.addEventListener('click', adaptiveClick);                                    //adds event listener to the adaptive button and calls the respective function
 
-function loadFile() {                                                       //load the audio file and save it in the buffer
-    console.log("chiamata loadFile");
-    var fileInput = document.getElementById('fileInput');
+        attackSlider.addEventListener('input', function(event) {                                    //adds event listener to the attack slider and calls the respective function
+            updateAttack(parseFloat(event.target.value));
+        });
+        
+        releaseSlider.addEventListener('input', function(event) {                                   //adds event listener to the release slider and calls the respective function
+            updateRelease(parseFloat(event.target.value));
+        });
 
-    if (!fileInput.files || fileInput.files.length === 0) {
-        alert('Seleziona un file audio prima di procedere.');
-        return;
-    }
-
-    var audioFile = fileInput.files[0];
-    var reader = new FileReader();
-
-    reader.onload = function (event) {
-        var audioData = event.target.result;
-        context.decodeAudioData(audioData,
-            function(buffer){
-                player = new Tone.Player();
-                player.buffer = buffer;
-                source.buffer = buffer;
-                originalBuffer = cloneBuffer();
-                numberOfChannels = player.buffer.numberOfChannels;
-                sampleRate = player.buffer.sampleRate;
-                panNode = new Tone.Panner(0);
-                pitchNode = new Tone.PitchShift(0).toDestination();
-                player.connect(panNode);
-                panNode.connect(pitchNode);
-                player.volume.value = 0;
+        thresholdSlider.addEventListener('change', function(event) {                                //adds event listener to the threshold slider and calls the respective function
+            thresholdValue = parseFloat(thresholdSlider.value);
+            console.log("Treshold: " + thresholdValue);
+            if (adaptive){
+                index = [];
+                addIndexInOrder(0);
                 addIndexInOrder(player.buffer.duration);
-                selectedRange[0] = 0;
-                selectedRange[1] = player.buffer.duration;
-                console.log('File audio caricato e salvato nel buffer: ', buffer);
-                drawWaveform();
-            },
-            function(error){
-                alert('Errore durante la decodifica del file audio: ', error);
+                clear();
+                detectOnset(player.buffer);
+                restoreLines();
             }
-        );
-    };
-    reader.readAsArrayBuffer(audioFile);
-}
+        });
 
-function cloneBuffer(){
-    newBuffer = context.createBuffer(
-                    player.buffer.numberOfChannels,
-                    player.buffer.length,
-                    player.buffer.sampleRate
+        document.addEventListener('keydown', function(event) {                                      //adds event listener to the key pressed and calls the play function
+            const keyPressed = event.key.toLowerCase(); 
+            const mappedNumber = mapKeyToNumber(keyPressed);
+            if (mappedNumber !== undefined && mappedNumber < index.length - 1) {
+                play(mappedNumber);
+            }
+        });
+
+        document.addEventListener('keyup', function(event) {                                        //adds event listener to the key released and calls the stop function
+            stop();
+        });
+
+        draw.addEventListener('mousedown', function(event) {                                        //Event handler that catch the left and right click of the mouse on the waveform.
+            var rect = canvas_waveform.getBoundingClientRect();
+            var mouseX = event.clientX - rect.left;
+            var bufferIndex = (mouseX / canvas_waveform.width) * player.buffer.duration;
+            if (event.button === 0) {                       //left click
+                if (!eraser){
+                    var x = 0;
+                    while (index[x] > bufferIndex || index[x+1] < bufferIndex){
+                        x++;
+                    }
+                    if (stateSelection && index[x] === selectedRange[0] && index[x+1] === selectedRange[1]){
+                        selectedRange[0] = 0;
+                        selectedRange[1] = player.buffer.duration;
+                        stateSelection = false;
+                        var ctx = canvas_draw.getContext('2d');
+                        ctx.clearRect(0, 0, canvas_draw.width, canvas_draw.height);
+                    } else {
+                        selectedRange[0] = index[x];
+                        selectedRange[1] = index[x+1];
+        
+                        drawRectangle((index[x]/player.buffer.duration)*canvas_draw.width, (index[x+1]/player.buffer.duration)*canvas_draw.width);
+                        stateSelection = true;
+                    }
+                }
+            } else if (event.button === 2) {                //right click
+                if (eraser) {
+                    for (var i=1; i<index.length; i++) {
+                        if (bufferIndex>=index[i]-0.1 && bufferIndex<=index[i]+0.1) {
+                            var ctx = canvas_line.getContext('2d');
+                            ctx.clearRect(((index[i]/player.buffer.duration)*canvas_line.width)-2, 0, 4, canvas_line.height);
+                            index.splice(i, 1);
+                            console.log(index);
+                        }
+                    }
+                } else {
+                    addIndexInOrder(bufferIndex);
+                    drawVerticalLine(mouseX);
+                    if (stateSelection && bufferIndex >= selectedRange[0] && bufferIndex <= selectedRange[1]) {
+                        selectedRange[1] = bufferIndex;
+                        drawRectangle((selectedRange[0]/player.buffer.duration)*canvas_draw.width, (selectedRange[1]/player.buffer.duration)*canvas_draw.width);
+                    }
+                }
+            }
+        });
+        
+        document.addEventListener('contextmenu', function (event) {                                 //Event handler that prevent the context menu to appear when the right click is pressed.
+            event.preventDefault();
+        });
+
+        /**
+            * Update the pan value of the audio source when the pan slider change its value.
+        */
+        panSlider.addEventListener('input', function(event) {
+            panValue = parseFloat(panSlider.value);
+            panNode.pan.value = panValue;
+        });
+
+        /**
+            * Update the volume value of the audio source when the volume slider change its value.
+        */
+        volumeSlider.addEventListener('input', function(event) {
+            player.volume.value = parseFloat(volumeSlider.value);
+        });
+
+        /**
+            * Update the pitch value of the audio source when the pitch slider change its value.
+        */
+        pitchShiftSlider.addEventListener('input', function(event) {
+            pitchValue = parseFloat(pitchShiftSlider.value);
+            pitchNode.pitch = pitchValue;
+        });
+
+        function loadFile() {                                                       //load the audio file and save it in the buffer
+            console.log("chiamata loadFile");
+            var fileInput = document.getElementById('fileInput');
+        
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert('Seleziona un file audio prima di procedere.');
+                return;
+            }
+        
+            var audioFile = fileInput.files[0];
+            var reader = new FileReader();
+        
+            reader.onload = function (event) {
+                var audioData = event.target.result;
+                context.decodeAudioData(audioData,
+                    function(buffer){
+                        player = new Tone.Player();
+                        player.buffer = buffer;
+                        source.buffer = buffer;
+                        originalBuffer = cloneBuffer();
+                        numberOfChannels = player.buffer.numberOfChannels;
+                        sampleRate = player.buffer.sampleRate;
+                        panNode = new Tone.Panner(0);
+                        pitchNode = new Tone.PitchShift(0).toDestination();
+                        player.connect(panNode);
+                        panNode.connect(pitchNode);
+                        player.volume.value = 0;
+                        addIndexInOrder(player.buffer.duration);
+                        selectedRange[0] = 0;
+                        selectedRange[1] = player.buffer.duration;
+                        console.log('File audio caricato e salvato nel buffer: ', buffer);
+                        drawWaveform();
+                    },
+                    function(error){
+                        alert('Errore durante la decodifica del file audio: ', error);
+                    }
                 );
-    for (let channel = 0; channel < newBuffer.numberOfChannels; channel++) {
-        const newData = newBuffer.getChannelData(channel);
-        const inputData = player.buffer.getChannelData(channel);
-        newData.set(inputData);
-    }
-    return newBuffer;
-}
+            };
+            reader.readAsArrayBuffer(audioFile);
+        }
 
-thresholdSlider.addEventListener('change', function(event) {
-    thresholdValue = parseFloat(thresholdSlider.value);
-    console.log("Treshold: " + thresholdValue);
-    if (adaptive){
-        index = [];
-        addIndexInOrder(0);
-        addIndexInOrder(player.buffer.duration);
-        clear();
-        detectOnset(player.buffer);
-        restoreLines();
-    }
-});
+        function cloneBuffer(){
+            newBuffer = context.createBuffer(
+                            player.buffer.numberOfChannels,
+                            player.buffer.length,
+                            player.buffer.sampleRate
+                        );
+            for (let channel = 0; channel < newBuffer.numberOfChannels; channel++) {
+                const newData = newBuffer.getChannelData(channel);
+                const inputData = player.buffer.getChannelData(channel);
+                newData.set(inputData);
+            }
+            return newBuffer;
+        }
 
+        /**
+            * Play the entire audio buffer when the play button is pressed.
+        */
+        function playAudioBuffer() {                                        
+            Tone.start();
+            player.start();                
+            startTime = Tone.now();
+            animate();
+        }
 
-/**
- * Play the entire audio buffer when the play button is pressed.
- */
-function playAudioBuffer() {                                        
-    Tone.start();
-    player.start();                
-    startTime = Tone.now();
-    animate();
-}
+        /**
+            * Play the audio buffer from the selected note when the key is pressed.
+            * @input the index of the array to play.
+        */
+        function play(note) {     
+            if (player.state === 'stopped') {
+                Tone.start();
+                player.start(undefined, index[note], index[note+1]-index[note]);
+                startTime = Tone.now() - index[note];
+                animate();
+            }                  
+        }
 
-/**
- * Play the audio buffer from the selected note when the key is pressed.
- * @input the index of the array to play.
- */
-function play(note) {     
-    if (player.state === 'stopped') {
-        Tone.start();
-        player.start(undefined, index[note], index[note+1]-index[note]);
-        startTime = Tone.now() - index[note];
-        animate();
-    }                                          
-}
+        /**
+            * Function that implements the functionality of the adaptive button, activating it when it is pressed, 
+            * or disabling it when it is pressed again.
+        */
+        function adaptiveClick(){
+            if (!adaptive){             
+                document.getElementById('adaptiveButton').style.backgroundColor = 'blue';
+                adaptive = true;
+                index = [];
+                addIndexInOrder(0);
+                addIndexInOrder(player.buffer.duration);
+                clear();
+                detectOnset(player.buffer);
+                restoreLines();
+            } else {
+                document.getElementById('adaptiveButton').style.backgroundColor = 'grey';
+                adaptive = false;
+                index = [];
+                addIndexInOrder(0);
+                addIndexInOrder(player.buffer.duration);
+                clear();
+            }
+        }       
 
-/**
- * Function that implements the functionality of the adaptive button, activating it when it is pressed, 
- * or disabling it when it is pressed again.
- */
-function adaptiveClick(){
-    if (!adaptive){
-        document.getElementById('adaptiveButton').style.backgroundColor = 'blue';
-        adaptive = true;
-        index = [];
-        addIndexInOrder(0);
-        addIndexInOrder(player.buffer.duration);
-        clear();
-        detectOnset(player.buffer);
-        restoreLines();
-    } else {
-        document.getElementById('adaptiveButton').style.backgroundColor = 'grey';
-        adaptive = false;
-        index = [];
-        addIndexInOrder(0);
-        addIndexInOrder(player.buffer.duration);
-        clear();
-    }
-}
+        /**
+            * Function that clear the canvas above the waveform.
+        */
+        function clear(){
+            var ctx = canvas_line.getContext('2d');
+            ctx.clearRect(0, 0, canvas_line.width, canvas_line.height);
+            ctx = canvas_draw.getContext('2d');
+            ctx.clearRect(0, 0, canvas_draw.width, canvas_draw.height);
+        }
 
-/**
- * Function that clear the canvas above the waveform.
- */
-function clear(){
-    var ctx = canvas_line.getContext('2d');
-    ctx.clearRect(0, 0, canvas_line.width, canvas_line.height);
-    ctx = canvas_draw.getContext('2d');
-    ctx.clearRect(0, 0, canvas_draw.width, canvas_draw.height);
-}
-
-/**
- * The animation of the cursor.
-*/
-function animate() {
-    var currentTime = Tone.now() - startTime;
-    drawCursor(currentTime);
-    animationId = requestAnimationFrame(animate);
-}
-
-/**
- * Function that draw the cursor on the waveform in a specified time
- * @input {number} the time in seconds of the cursor position.
- */
-function drawCursor(time){
-    var position = (time / player.buffer.duration) * canvas_cursor.width;
-    var ctx = canvas_cursor.getContext('2d');
-    ctx.clearRect(0, 0, canvas_cursor.width, canvas_cursor.height);
-    ctx.beginPath();
-    ctx.strokeStyle = 'blue'; 
-    ctx.lineWidth=2;
-    ctx.moveTo(position, 0);
-    ctx.lineTo(position, canvas_cursor.height);
-    ctx.stroke();
-}
+        /**
+            * The animation of the cursor.
+        */
+        function animate() {
+            var currentTime = Tone.now() - startTime;
+            drawCursor(currentTime);
+            animationId = requestAnimationFrame(animate);
+        }
+        
+        /**
+            * Function that draw the cursor on the waveform in a specified time
+            * @input {number} the time in seconds of the cursor position.
+        */
+        function drawCursor(time){
+            var position = (time / player.buffer.duration) * canvas_cursor.width;
+            var ctx = canvas_cursor.getContext('2d');
+            ctx.clearRect(0, 0, canvas_cursor.width, canvas_cursor.height);
+            ctx.beginPath();
+            ctx.strokeStyle = 'blue'; 
+            ctx.lineWidth=2;
+            ctx.moveTo(position, 0);
+            ctx.lineTo(position, canvas_cursor.height);
+            ctx.stroke();
+        }
 
 /**
  * Map the key pressed on the keyboard to the corresponding number of the slice.
@@ -247,14 +339,6 @@ function mapKeyToNumber(key) {
             return undefined;
     }
 }
-
-document.getElementById('attackSlider').addEventListener('input', function(event) {
-    updateAttack(parseFloat(event.target.value));
-});
-
-document.getElementById('releaseSlider').addEventListener('input', function(event) {
-    updateRelease(parseFloat(event.target.value));
-});
 
 /**
  * Update the attack value of the audio source when the attack slider change its value.
@@ -335,26 +419,6 @@ drawWaveform();
 }
 
 /**
- * Event listener that play the corresponding slice when the key is pressed.
- * @input {event} the event of the key pressed.
- */
-document.addEventListener('keydown', function(event) {
-    const keyPressed = event.key.toLowerCase(); 
-    const mappedNumber = mapKeyToNumber(keyPressed);
-    if (mappedNumber !== undefined && mappedNumber < index.length - 1) {
-        play(mappedNumber);
-    }
-});
-
-/**
- * Event listener that stop the audio when the key is released.
- * @input {event} the event of the key released.
- */
-document.addEventListener('keyup', function(event) {
-    stop();
-});
-
-/**
  * function that map the note to the corresponding number of the slice.
  * @input {number} the note to map.
  */
@@ -396,62 +460,6 @@ function drawWaveform() {
 }
 
 /**
- * Event handler that catch the left and right click of the mouse on the waveform.
- */
-document.getElementById('draw').addEventListener('mousedown', function(event) {
-
-    var rect = canvas_waveform.getBoundingClientRect();
-    var mouseX = event.clientX - rect.left;
-    var bufferIndex = (mouseX / canvas_waveform.width) * player.buffer.duration;
-    if (event.button === 0) {                       //left click
-        if (!eraser){
-            var x = 0;
-            while (index[x] > bufferIndex || index[x+1] < bufferIndex){
-                x++;
-            }
-            if (stateSelection && index[x] === selectedRange[0] && index[x+1] === selectedRange[1]){
-                selectedRange[0] = 0;
-                selectedRange[1] = player.buffer.duration;
-                stateSelection = false;
-                var ctx = canvas_draw.getContext('2d');
-                ctx.clearRect(0, 0, canvas_draw.width, canvas_draw.height);
-            } else {
-                selectedRange[0] = index[x];
-                selectedRange[1] = index[x+1];
-
-                drawRectangle((index[x]/player.buffer.duration)*canvas_draw.width, (index[x+1]/player.buffer.duration)*canvas_draw.width);
-                stateSelection = true;
-            }
-        }
-    } else if (event.button === 2) {                //right click
-        if (eraser) {
-            for (var i=1; i<index.length; i++) {
-                if (bufferIndex>=index[i]-0.1 && bufferIndex<=index[i]+0.1) {
-                    var ctx = canvas_line.getContext('2d');
-                    ctx.clearRect(((index[i]/player.buffer.duration)*canvas_line.width)-2, 0, 4, canvas_line.height);
-                    index.splice(i, 1);
-                    console.log(index);
-                }
-            }
-        } else {
-            addIndexInOrder(bufferIndex);
-            drawVerticalLine(mouseX);
-            if (stateSelection && bufferIndex >= selectedRange[0] && bufferIndex <= selectedRange[1]) {
-                selectedRange[1] = bufferIndex;
-                drawRectangle((selectedRange[0]/player.buffer.duration)*canvas_draw.width, (selectedRange[1]/player.buffer.duration)*canvas_draw.width);
-            }
-        }
-    }
-});
-
-/**
- * Event handler that catch the left mouse click and prevent the context menu to appear.
- */
-document.addEventListener('contextmenu', function (event) {
-    event.preventDefault();
-});
-
-/**
  * Event handler that draw the selection rectangle when the mouse is clicked.
  */
 function drawRectangle(x, y){  
@@ -484,29 +492,6 @@ function secondsToBufferIndex(time) {
 }
 
 /**
- * Update the pan value of the audio source when the pan slider change its value.
- */
-panSlider.addEventListener('input', function(event) {
-    panValue = parseFloat(panSlider.value);
-    panNode.pan.value = panValue;
-});
-
-/**
- * Update the volume value of the audio source when the volume slider change its value.
- */
-volumeSlider.addEventListener('input', function(event) {
-    player.volume.value = parseFloat(volumeSlider.value);
-});
-
-/**
- * Update the pitch value of the audio source when the pitch slider change its value.
- */
-pitchShiftSlider.addEventListener('input', function(event) {
-    pitchValue = parseFloat(pitchShiftSlider.value);
-    pitchNode.pitch = pitchValue;
-});
-
-/**
  * Function that reverse the wave in the parameters inside the selected range
  */
 function reverseWave() {
@@ -523,7 +508,6 @@ function reverseWave() {
     player.buffer.getChannelData(1).set(bufferData, startIndex);
     drawWaveform();
 }
-
 
 /**
 * Function that draw a vertical line in the waveform at the x position
@@ -610,4 +594,5 @@ function detectOnset(audioBuffer) {
     }
     console.log(index.length-1);
 }
+
 });
