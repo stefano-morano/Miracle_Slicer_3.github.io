@@ -1,41 +1,499 @@
+@font-face {
+    font-family: 'fonttitle';
+    src: url('assets/digital-7.ttf') format('truetype');
+}
+
+* {
+margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+
+h1 {
+  text-align: center;
+  font-size: 50px;
+  font-family: 'Corporation Games', Times, serif;
+  margin-top: 15px;
+  color: rgb(255, 255, 255);
+  text-shadow: 2px 2px 4px rgb(6, 38, 49);
+}
+
 #slicer{
-    width: 450px;
-    height: 800px;
-    border: 5px solid black;
-    background-color: lightblue;
-    border-radius: 10px;
-    margin: auto;
-    justify-content: center;
-    align-items: center;
+  position: absolute;
+  background-image: url('assets/canva.png');
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;            
+  width: 950px;
+  height: 550px;
+  border: 0px solid black;
+  border-radius: 0px;
+  top: 52%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+  
+#logo{
+  margin:0px auto;
+  display: block;
+  text-align: center;
+  width: 90px;
+  height: 90px;
+  position: relative;
+  top: 5px;
 }
 
-.button {
-    background-color: grey; /* Green */
-    border: none;
-    color: black;
-    padding: 15px 32px;
-    text-align: center;
-    position: relative;
-    text-decoration: none;
-    border-radius: 10px;
-    border: 2px solid black;
-    margin: 2px;
-    display: inline-block;
-    font-size: 16px;
-    cursor: pointer;
-    transition: 0.5;
+#container_logo{
+  position: absolute;
+  top: 0;
+  left: 0;
+  text-align: center;
 }
 
-.button:hover{
-    background-color: lightgrey;
+.knob_container{
+  position: absolute;
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
 }
 
-#waveform{
-    width: 440px;
-    height: 200px;
-    border: 5px solid black;
-    background-color: white;
-    border-radius: 10px;
-    margin: auto;
-    align-items: center;
+.knob_container::before{
+  content: '';
+  background: linear-gradient(0deg, #525252 0%, #373737 100%);
+  position: absolute;
+  width: 43px;
+  height: 43px;
+  border-radius: 50%;
+  box-shadow: inset 0px 5px 6px #979797,
+              inset 0px -5px 6px #242424; 
 }
+
+.knob{
+	width:45px;
+	height:45px;
+	position:relative;
+	rotate: -45deg;
+}
+
+.knob .top{
+	position:absolute;
+	top:0;
+	left:0;
+	width:45px;
+	height: 45px;
+	background:url('knob.png') no-repeat;
+	background-size: contain;
+	z-index:0;
+	cursor:default !important;
+}
+
+.knob .base{
+	width:45px;
+	height:45px;
+	border-radius:50%;
+	box-shadow:0 3px 0 #4a5056,5px 5px 5px #000;
+	position:absolute;
+	top:0;
+	left:0;
+	z-index:1;
+}
+
+.knob .top:after{
+	content:'';
+	width:6px;
+	height:6px;
+	background-color:#666;
+	position:absolute;
+	top:50%;
+	left:6px;
+	margin-top:-5px;
+	border-radius: 50%;
+	cursor:default !important;
+	box-shadow: 0 0 1px #5a5a5a inset;
+}
+
+
+.knob::before,
+.knob::after{
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+}
+
+.knob::before{
+  top: 20%;
+  left: 74%;
+  width: 3px;
+  height: 3px;
+  background: #fff;
+  box-shadow: 0px 0px 10px green;
+}
+
+.knob::after{
+  border: 1px solid #fff;
+  width: 43px;
+  height: 43px;
+  box-shadow: 0px 0px 4px green, inset 0px 0px 4px green;
+}
+
+#container_sensitivity{
+  transform: translate(1183%, 1030%);
+}
+
+#container_pitch{
+  transform: translate(1569%, 780%);
+}
+
+#container_attack{
+  transform: translate(1471%, 1030%);
+}
+
+#container_release{
+  transform: translate(1667%, 1030%);
+}
+
+#container_pan{
+  transform: translate(1962%, 780%);
+}
+
+#knob_sensitivity::before{
+  box-shadow: 0px 0px 10px orange;
+}
+
+#knob_sensitivity::after{
+  box-shadow: 0px 0px 4px orange, inset 0px 0px 4px orange;
+}
+
+
+body {
+/* Imposta l'immagine come sfondo */
+background-image: url('assets/slicer.png'); 
+/* Specifica come l'immagine deve essere visualizzata */
+background-size: cover; 
+/* Centra l'immagine orizzontalmente e verticalmente */
+background-position: center; 
+/* Fissa lo sfondo in modo che non scorra con la pagina */
+background-attachment: fixed; 
+/* Opzione per colorare lo sfondo se l'immagine non è disponibile */
+background-color: #cccccc; 
+}
+
+#lordIcon {
+  position: relative;
+  top: 16px;
+  left: 16px;
+ 
+}
+
+#lordIcon2 {
+  position: relative;
+  top: 16px;
+  left: 21px;
+} 
+
+#trash{
+  position: relative;
+  top: 16px;
+  left: 374px;
+}
+
+#info{
+  position: absolute;
+  top: 18px;
+  left: 895px;
+}
+
+#fileNameDisplay{
+  position: absolute;
+  top: 28px;
+  left: 124px;
+  margin: 0;
+  padding: 0;
+  color: rgb(0, 0, 0);
+  font-size: 20px;
+  font-family: 'fonttitle', sans-serif; /* Usa il nome del font specificato in font-family */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Aggiunto per i puntini di sospensione */
+  max-width: 373px; /* Sostituisci con la tua lunghezza desiderata in pixel */
+}
+
+#midiSelect{
+  position: relative;
+  top: 16px;
+  left: 758px;
+  color: rgb(255, 255, 255);
+  font-size: 20px;
+  font-family: 'Arial', Times, serif;
+}
+
+#waveformContainer{
+  top: 26px;
+  left: 2px;
+}
+
+#waveformCanvas{
+  background-color: rgba(0, 0, 0, 0); /* Imposta l'alpha a 0 per uno sfondo trasparente */
+}
+
+#sliced_sample{
+  position: absolute;
+  top: 305px;
+  left: 2px;
+}
+
+#play{
+  position: absolute;
+  top: 18px;
+  left: 628px;
+}
+
+#pause{
+  position: absolute;
+  top: 18px;
+  left: 678px;
+}
+
+#playsect{
+position: relative;
+top: 468px;
+left: 4px;
+width: 147px;
+height: 34px;
+background-color: rgba(0, 0, 0, 0);
+border: none;
+cursor: pointer;
+}
+
+
+#reversesect{
+  position: relative;
+  top: 458px;
+  left: 2px;
+  padding: 10px 20px;
+  width: 290px;
+  height: 34px;
+  background-color: rgba(0, 0, 0, 0);
+  border: none;
+  cursor: pointer;
+  }
+
+  #reversetitle{
+    position: absolute;
+    bottom: 9px;
+    left: 250px;
+    font-size: 20px;
+    font-family: 'Arial', Times, serif;
+    cursor:pointer;
+}
+
+#reversesect.ledReverse{
+  background-color: #2d2f35;
+}
+
+
+
+#playtitle{
+  position: absolute;
+  bottom: 9px; /* Distanza dal fondo in pixel */
+  left: 43px; /* Posiziona al centro rispetto all'asse orizzontale */
+  
+  font-size: 20px;
+  font-family: 'Arial', Times, serif;
+  cursor:pointer;
+}
+
+#reversetitle{
+  position: absolute;
+  bottom: 9px; /* Distanza dal fondo in pixel */
+  left: 240px; /* Posiziona al centro rispetto all'asse orizzontale */
+  
+  font-size: 20px;
+  font-family: 'Arial', Times, serif;
+  cursor:pointer;
+}
+
+#playtitleic{
+  position: absolute;
+  bottom: 5px; /* Distanza dal fondo in pixel */
+  left: 10%; /* Posiziona al centro rispetto all'asse orizzontale */
+  cursor: pointer;
+}
+
+#reverse1{
+  position: absolute;
+  bottom: 9px; /* Distanza dal fondo in pixel */
+  left: 36%; /* Posiziona al centro rispetto all'asse orizzontale */
+  cursor: pointer;
+  transform: rotate(180deg);
+}
+
+#reverse2{
+  position: absolute;
+  bottom: 8px; /* Distanza dal fondo in pixel */
+  left: 37.5%; /* Posiziona al centro rispetto all'asse orizzontale */
+  cursor: pointer;
+  transform: rotate(180deg);
+  
+}
+
+.playon {
+   color: #32E0C4; /* Cambia il colore del testo quando illuminato */
+}
+
+#playsect.playing{
+  background-color: #2d2f35;
+}
+
+.reverseon{
+  color: #32E0C4;
+}
+
+#reversesect.reversing{
+  background-color: #2d2f35;
+}
+
+
+  /* To hide the checkbox */
+#checkboxInput {
+   display: none;
+}
+
+.toggleSwitch {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 352px;
+  left: 452px;
+  rotate: 90deg;
+  width: 46px;
+  height: 8px;
+  background-color: #222831;
+  border-radius: 20px;
+  cursor: pointer;
+  transition-duration: .2s;
+  }
+
+.toggleSwitch::after {
+  content: "";
+  position: absolute;
+  height: 12px;
+  width: 12px;
+  left: 0px;
+  background-color: #FF9E00;
+  border-radius: 50%;
+  transition-duration: .2s;
+  border: 2px solid #FF9E00;
+}
+
+.toggleSwitch:hover {
+  opacity: 0.9;
+}
+
+#checkboxInput:checked+.toggleSwitch::after {
+  transform: translateX(184%);
+  transition-duration: .2s;
+  border: 2px solid #FF9E00;
+  
+}
+/* Switch background change */
+#checkboxInput:checked+.toggleSwitch {
+  background-color: #222831;
+  transition-duration: .2s;
+}
+
+#manualtitle{
+  position: absolute;
+  top: 334px;
+  left: 492px;
+  font-size: 13px;
+  font-family: 'Arial', Times, serif;
+  color: #FF9E00;
+}
+
+#transienttitle{
+  position: absolute;
+  top: 364px;
+  left:492px;
+  font-size: 13px;
+  font-family: 'Arial', Times, serif;
+}
+
+#onsetTrash{
+  position: absolute;
+  top: 393px;
+  left: 517px;
+  background-color: #2e2f32;
+  border-radius: 10%;
+  cursor: pointer;
+}
+
+
+#onsetTrash:hover{
+  opacity: 0.8;
+}
+
+.slidecontainer {
+    width: 100%;
+}
+
+.slider {
+  position: absolute;
+  -webkit-appearance: none;
+  width: 100px;
+  height: 5px;
+  border-radius: 5px;
+  top: 470px;
+  left: 800px;
+  background: #000000;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+  rotate: -90deg;
+}   
+
+.slider:hover {
+  opacity: 1;
+}
+
+.slider::-webkit-slider-thumb {
+   -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 30px;
+  border: 0;
+  background: url('assets/slider.png');
+  rotate: 90deg;
+  background-size: cover;
+  cursor: pointer;
+}
+
+.slider::-moz-range-thumb {
+   width: 23px;
+  height: 24px;
+  border: 0;
+  background: url('assets/slider.png');
+  cursor: pointer;
+}
+
+#meter {
+  width: 100px;
+  height: 20px;
+  background-color: #f0f0f000;
+  border: 0.5px solid #ccc;
+  position: relative;
+  top: 375px;
+  left: 850px;
+  rotate: -90deg;
+}
+
+#volume-bar {
+  height: 100%;
+  background-color: #4caf50;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
