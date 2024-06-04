@@ -353,7 +353,6 @@ cursor: pointer;
   background-color: #2d2f35;
 }
 
-
   /* To hide the checkbox */
 #checkboxInput {
    display: none;
@@ -395,8 +394,8 @@ cursor: pointer;
   transform: translateX(184%);
   transition-duration: .2s;
   border: 2px solid #FF9E00;
-  
 }
+
 /* Switch background change */
 #checkboxInput:checked+.toggleSwitch {
   background-color: #222831;
@@ -444,8 +443,8 @@ cursor: pointer;
   width: 100px;
   height: 5px;
   border-radius: 5px;
-  top: 470px;
-  left: 800px;
+  top: 484px;
+  left: 785px;
   background: #000000;
   outline: none;
   opacity: 0.7;
@@ -459,7 +458,7 @@ cursor: pointer;
 }
 
 .slider::-webkit-slider-thumb {
-   -webkit-appearance: none;
+  -webkit-appearance: none;
   appearance: none;
   width: 15px;
   height: 30px;
@@ -484,8 +483,8 @@ cursor: pointer;
   background-color: #f0f0f000;
   border: 0.5px solid #ccc;
   position: relative;
-  top: 375px;
-  left: 850px;
+  top: 50px;
+  left: 853px;
   rotate: -90deg;
 }
 
@@ -496,4 +495,68 @@ cursor: pointer;
   bottom: 0;
   left: 0;
 }
+
+#Sens_Lab{
+  margin-top: 425px; 
+  margin-left: 507px; 
+  border: 1px solid #ffffff; 
+  padding: 0px; 
+  width: 50px; 
+  height: 18px; 
+  text-align: center; 
+  color: white; 
+  font-size: 14px;
+}
+
+#Att_Lab{
+  margin-top: -17px; 
+  margin-left: 630px; 
+  border: 1px solid #ffffff; 
+  padding: 0px; 
+  width: 50px; 
+  height: 18px; 
+  text-align: center; 
+  color: white; 
+  font-size: 14px;
+}
+
+
+#Rel_Lab{
+  margin-top: -18px;
+  margin-left: 714px; 
+  border: 1px solid #ffffff; 
+  padding: 0px; 
+  width: 50px; 
+  height: 18px; 
+  text-align: center; 
+  color: white; 
+  font-size: 14px;
+}
+
+
+#Pitch_Lab{
+  margin-top: -125px; 
+  margin-left: 673px; 
+  border: 1px solid #ffffff; 
+  padding: 0px; 
+  width: 50px; 
+  height: 18px; 
+  text-align: center; 
+  color: white; 
+  font-size: 14px;
+}
+
+
+#Pan_Lab{
+  margin-top: -18px; 
+  margin-left: 842px; 
+  border: 1px solid #ffffff; 
+  padding: 0px; 
+  width: 50px; 
+  height: 18px; 
+  text-align: center; 
+  color: white; 
+  font-size: 14px;
+}
+
 

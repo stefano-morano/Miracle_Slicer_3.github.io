@@ -6,16 +6,16 @@
         var startTime;
         var index = [0]; // The array of the slice index
         var selectedRange = []; // The array containing the selected range
-        var stateSelection = false;
-        var loaded = false;
-        var eraser = false;
-        var adaptive = false;
-        var player;
-        var panNode;
-        var pitchNode;
-        var meter;
-        var originalBuffer;
-        var thresholdValue = 1200;
+        var stateSelection = false; // Boolean state for the selection
+        var loaded = false; // Boolean state for the loaded file
+        var eraser = false; // Boolean state for the eraser
+        var adaptive = false; // Boolean state for the adaptive mode
+        var player; // The player object
+        var panNode; // The panner node
+        var pitchNode; // The pitch shift node
+        var meter; // The meter object
+        var originalBuffer; // The original audio buffer
+        var thresholdValue = 1200; // The threshold value for the onset detection
         var source = context.createBufferSource();
         var canvas_waveform = document.getElementById('waveform');
         var canvas_draw = document.getElementById('draw');
@@ -23,16 +23,20 @@
         var canvas_cursor = document.getElementById('cursor');
         var canvas_slice = document.getElementById('waveform_sliced');
         let activeKnob = null;
-        
 
         const knob_sensitivity = document.getElementById('knob_sensitivity');
+        const label_sensitivity = document.getElementById('sens_val');
         knob_sensitivity.style.transform = 'rotate(-116deg)';
         const knob_attack = document.getElementById('knob_attack');
+        const label_attack = document.getElementById('att_val');
         knob_attack.style.transform = 'rotate(-116deg)';
         const knob_release = document.getElementById('knob_release');
+        const label_release = document.getElementById('rel_val');
         knob_release.style.transform = 'rotate(-116deg)';
         const knob_pitch = document.getElementById('knob_pitch');
+        const label_pitch = document.getElementById('pitch_val');
         const knob_pan = document.getElementById('knob_pan');
+        const label_pan = document.getElementById('pan_val');
         const volumeBar = document.getElementById('volume-bar');
         knob_sensitivity.addEventListener('mousedown', startRotation);
         knob_attack.addEventListener('mousedown', startRotation);
@@ -115,6 +119,7 @@
             var bufferIndex = (mouseX / canvas_waveform.width) * player.buffer.duration;
             if (event.button === 0) {                       //left click
                 if (!eraser){
+                    reset_knobs();
                     var x = 0;
                     while (index[x] > bufferIndex || index[x+1] < bufferIndex){
                         x++;
@@ -149,6 +154,7 @@
                     addIndexInOrder(bufferIndex);
                     drawVerticalLine(mouseX);
                     if (stateSelection && bufferIndex >= selectedRange[0] && bufferIndex <= selectedRange[1]) {
+                        reset_knobs();
                         selectedRange[1] = bufferIndex;
                         drawRectangle((selectedRange[0]/player.buffer.duration)*canvas_draw.width, (selectedRange[1]/player.buffer.duration)*canvas_draw.width);
                     }
@@ -174,6 +180,18 @@
             } else {
                 playtitleic.classList.toggle('playon');
             }
+        });
+
+        document.getElementById('Pitch_Lab').addEventListener('click', function() {                                           //DA AGGIUNGERE
+            label_pitch.textContent = '0';
+            pitchNode.pitch = 0;
+            knob_pitch.style.transform = `rotate(${0}deg)`;
+        });
+
+        document.getElementById('Pan_Lab').addEventListener('click', function() {                                           //DA AGGIUNGERE
+            label_pan.textContent = '0';
+            panNode.pan.value = 0;
+            knob_pan.style.transform = `rotate(${0}deg)`;
         });
 
         /**
@@ -392,6 +410,13 @@
 
             ctx.lineTo(canvas_slice.width, canvas_slice.height / 2);
             ctx.stroke();
+        }
+
+        function reset_knobs(){
+            knob_attack.style.transform = 'rotate(-116deg)';
+            knob_release.style.transform = 'rotate(-116deg)';
+            label_attack.textContent = '0';
+            label_release.textContent = '0';
         }
 
         /**
@@ -762,7 +787,6 @@
             if (!loaded) return;
             const knob = activeKnob; 
             if (!knob) return;
-    
             const result = Math.floor(volumeKnob(e) - 80);
             if ((result >= -116 && result <= 100) || (result >= -260 && result <= -250)) {
                 let value;
@@ -775,18 +799,23 @@
                 switch (knob.id) {
                     case 'knob_pan':
                         panNode.pan.value = map_value(value, -1, 1);
+                        label_pan.textContent = (value - 50) + "%";
                         break;
                     case 'knob_attack':
                         updateAttack(map_value(value, 0, 0.5));
+                        label_attack.textContent = value + "%";
                         break;
                     case 'knob_release':
                         updateRelease(map_value(value, 0, 0.5));
+                        label_release.textContent = value + "%";
                         break;
                     case 'knob_pitch':
                         pitchNode.pitch = map_value(value, -24, 24);
+                        label_pitch.textContent = (value - 50) + "%";
                         break;
                     case 'knob_sensitivity':
                         thresholdValue = map_value(value, 1000, 2000);
+                        label_sensitivity.textContent = map_value(value, 25, 100) + "%";
                         break;
                 }
                 knob.style.transform = `rotate(${result}deg)`;
@@ -845,16 +874,6 @@
                 // Rimuovi la classe "illuminato" quando la riproduzione è completata
                 playtitleic.classList.remove('playon');
             });
-
-
-
-
-            
-
-function updateLordIconColor(lordIconElement, color) {    //DA AGGIUNGERE
-    // Aggiorna il colore del lord-icon tramite il suo attributo colors
-    lordIconElement.setAttribute('colors', `primary:${color}`);
-}
 
    /* var slider = document.getElementById("myRange");                                            //DA AGGIUNGERE
     var output = document.getElementById("demo");
