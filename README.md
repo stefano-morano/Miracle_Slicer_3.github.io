@@ -1,5 +1,5 @@
 # Miracle Slicer 3
-
+![Logo](assets/favicon.png)
 ## INTRODUCTION
 Audio Slicer for the ACTAM project at Politecnico di Milano.
 Made using HTML, CSS, JavaScript and the Tone.js library to manipulate the audio Buffer.
