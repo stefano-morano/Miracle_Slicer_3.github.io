@@ -21,8 +21,12 @@ When you have your slicer ready, you can play the loops with your computer keybo
 
 ## AUTHORS 
 Stefano Morano
+
 Andrea Arosio
+
 Marco Roncoroni
+
+
 
 ACTAM course by Prof. Francesco Bruschi
 
