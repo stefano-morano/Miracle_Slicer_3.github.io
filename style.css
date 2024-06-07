@@ -164,6 +164,10 @@ h1 {
   box-shadow: 0px 0px 4px orange, inset 0px 0px 4px orange;
 }
 
+#info_img{
+  width: 150px;
+  height: 150px;
+}
 
 body {
 /* Imposta l'immagine come sfondo */
@@ -194,7 +198,7 @@ background-color: #cccccc;
 #trash{
   position: relative;
   top: 16px;
-  left: 374px;
+  left: 415px;
 }
 
 #info{
@@ -218,14 +222,6 @@ background-color: #cccccc;
   max-width: 373px; /* Sostituisci con la tua lunghezza desiderata in pixel */
 }
 
-#midiSelect{
-  position: relative;
-  top: 16px;
-  left: 758px;
-  color: rgb(255, 255, 255);
-  font-size: 20px;
-  font-family: 'Arial', Times, serif;
-}
 
 #waveformContainer{
   top: 26px;
@@ -330,11 +326,23 @@ cursor: pointer;
 
 #reverse2{
   position: absolute;
-  bottom: 8px; /* Distanza dal fondo in pixel */
+  bottom: 9px; /* Distanza dal fondo in pixel */
   left: 37.5%; /* Posiziona al centro rispetto all'asse orizzontale */
   cursor: pointer;
   transform: rotate(180deg);
-  
+}
+
+#midiSelection{
+  position: relative;
+  height: 25px;
+  width: 130px;
+  top: -420px;
+  left: 732px;
+  color: rgb(255, 255, 255);
+  border: 2px solid #fff;
+  background-color: rgb(32,36,43);
+  font-size: 12px;
+  font-family: 'Helvetica', sans-serif;
 }
 
 .playon {
@@ -559,4 +567,75 @@ cursor: pointer;
   font-size: 14px;
 }
 
+/* Popup container info&about */
+.popup {
+  font-family: Arial, sans-serif;
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  top: -450px;
+  left: 900px;
+  color: white;
+}
+
+/* The actual popup (appears on top) */
+.popup .popuptext {
+  visibility: hidden;
+  width: 700px;
+  height: 300px;
+  background-color: #030202;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  
+  position: absolute;
+  z-index: 1;
+  top: 100px;
+  left: -750px;
+}
+
+.popup .popuptext .close {
+position: absolute;
+top: 10px;
+right: 10px;
+cursor: pointer;
+font-size: 20px;
+color: #fff;
+z-index: 4;
+}
+
+
+
+/* Toggle this class when clicking on the popup container (hide and show the popup) */
+.popup .show {
+  visibility: visible;
+ -webkit-animation: fadeIn 1s;
+  animation: fadeIn 1s
+}
+
+/* animation (fade in the popup) */
+@-webkit-keyframes fadeIn {
+  from {opacity: 0;} 
+  to {opacity: 1;}
+}
+
+@keyframes fadeIn {
+from {opacity: 0;}
+to {opacity:1 ;}
+  }
+
+.overlay {
+position: fixed;
+top: 0;
+left: 0;
+width: 100%;
+height: 100%;
+background-color: rgba(0, 0, 0, 0.5);
+z-index: 2;
+visibility: hidden;
+}
+
+.overlay.show {
+visibility: visible;
+}
 

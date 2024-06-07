@@ -3,7 +3,8 @@
     document.addEventListener('DOMContentLoaded', function() {
 
         var animationId; // The ID of the animation frame
-        var startTime;
+        var animationId_sliced; // The ID of the animation frame
+        var startTime; // The start time of the audio buffer when the player is on
         var index = [0]; // The array of the slice index
         var selectedRange = []; // The array containing the selected range
         var stateSelection = false; // Boolean state for the selection
@@ -15,14 +16,18 @@
         var pitchNode; // The pitch shift node
         var meter; // The meter object
         var originalBuffer; // The original audio buffer
-        var thresholdValue = 1200; // The threshold value for the onset detection
-        var source = context.createBufferSource();
-        var canvas_waveform = document.getElementById('waveform');
-        var canvas_draw = document.getElementById('draw');
-        var canvas_line = document.getElementById('line');
-        var canvas_cursor = document.getElementById('cursor');
+        var thresholdValue = 1000; // The threshold value for the onset detection
+        var source = context.createBufferSource(); // The source node
+        var canvas_waveform = document.getElementById('waveform'); // The waveform canvas
+        var canvas_draw = document.getElementById('draw'); // The selection canvas
+        var canvas_line = document.getElementById('line'); // The canvas of the transient lines
+        var canvas_cursor = document.getElementById('cursor'); // The canvas of the moving cursor
         var canvas_slice = document.getElementById('waveform_sliced');
-        let activeKnob = null;
+        var canvas_sliced_cursor = document.getElementById('sliced_cursor');
+        var popup = document.getElementById("myPopup");
+        var overlay = document.getElementById("overlay");
+        var slider = document.getElementById("myRange");
+        var activeKnob = null;
 
         const knob_sensitivity = document.getElementById('knob_sensitivity');
         const label_sensitivity = document.getElementById('sens_val');
@@ -38,12 +43,26 @@
         const knob_pan = document.getElementById('knob_pan');
         const label_pan = document.getElementById('pan_val');
         const volumeBar = document.getElementById('volume-bar');
-        knob_sensitivity.addEventListener('mousedown', startRotation);
-        knob_attack.addEventListener('mousedown', startRotation);
-        knob_release.addEventListener('mousedown', startRotation);
-        knob_pitch.addEventListener('mousedown', startRotation);
-        knob_pan.addEventListener('mousedown', startRotation);
-
+        knob_sensitivity.addEventListener('mousedown', function (event) {                         //Event handler that prevent the context menu to appear when the right click is pressed.
+            event.preventDefault();
+            startRotation(event);
+        });
+        knob_attack.addEventListener('mousedown', function (event) {                              //Event handler that prevent the context menu to appear when the right click is pressed.
+            event.preventDefault();
+            startRotation(event);
+        });
+        knob_release.addEventListener('mousedown', function (event) {                             //Event handler that prevent the context menu to appear when the right click is pressed.
+            event.preventDefault();
+            startRotation(event);
+        });
+        knob_pitch.addEventListener('mousedown', function (event) {                               //Event handler that prevent the context menu to appear when the right click is pressed.
+            event.preventDefault();
+            startRotation(event);
+        });
+        knob_pan.addEventListener('mousedown', function (event) {                                 //Event handler that prevent the context menu to appear when the right click is pressed.
+            event.preventDefault();
+            startRotation(event);
+        });
 
         /**
             * Function that scan the midi inputs and add them to the select menu.
@@ -51,7 +70,7 @@
         async function getMidi(){
             var midi = await navigator.requestMIDIAccess();
             const inputs = midi.inputs.values();
-            const midiSelect = document.getElementById('midiSelect');
+            const midiSelect = document.getElementById('midiSelection');
             for (const input of inputs) {
                 const option = document.createElement('option');
                 option.value = input.id;
@@ -80,6 +99,10 @@
         }
 
         getMidi();                                                                                  //calls the function to scan midi inputs as first thing
+        
+        document.getElementById('lordIcon').addEventListener('click', function () {
+            document.getElementById('fileInput').click();
+        });
 
         lordIcon2.addEventListener('click', loadFile);                                              //adds event listener to the load button and calls the respective function
 
@@ -88,13 +111,15 @@
         document.getElementById('onsetTrash').addEventListener('click', erase);                     //adds event listener to the erase button and calls the respective function
 
         reversesect.addEventListener('click', function() {                                          //adds event listener to the reverse button and calls the respective function
-            var reversetitleic = document.getElementById('reversetitle');
-            reversetitleic.classList.toggle('reverseon');
-            reverseWave();
-            drawSlice(secondsToBufferIndex(selectedRange[0]), secondsToBufferIndex(selectedRange[1]));
-            setTimeout(function() {
+            if (loaded){
+                var reversetitleic = document.getElementById('reversetitle');
                 reversetitleic.classList.toggle('reverseon');
-            }, 500);
+                reverseWave();
+                drawSlice(secondsToBufferIndex(selectedRange[0]), secondsToBufferIndex(selectedRange[1]));
+                setTimeout(function() {
+                    reversetitleic.classList.toggle('reverseon');
+                }, 500);
+            }
         });
 
         document.getElementById('pause').addEventListener('click', pauseAudioBuffer);               //adds event listener to the play button and calls the respective function
@@ -138,6 +163,7 @@
                         drawRectangle((index[x]/player.buffer.duration)*canvas_draw.width, (index[x+1]/player.buffer.duration)*canvas_draw.width);
                         drawSlice(secondsToBufferIndex(selectedRange[0]), secondsToBufferIndex(selectedRange[1]));
                         stateSelection = true;
+                        console.log(selectedRange);
                     }
                 }
             } else if (event.button === 2) {                //right click
@@ -157,6 +183,7 @@
                         reset_knobs();
                         selectedRange[1] = bufferIndex;
                         drawRectangle((selectedRange[0]/player.buffer.duration)*canvas_draw.width, (selectedRange[1]/player.buffer.duration)*canvas_draw.width);
+                        drawSlice(secondsToBufferIndex(selectedRange[0]), secondsToBufferIndex(selectedRange[1]));
                     }
                 }
             }
@@ -166,19 +193,19 @@
             event.preventDefault();
         });
 
-        document.addEventListener('mousedown', function(event) {                                    //Event handler that prevent the highlight of the text when the mouse is pressed.    
-            if (event.button === 0) {
-                event.preventDefault();
-            }
-        }, false);
-
         document.getElementById('playsect').addEventListener('click', function() {
-            var playtitleic = document.getElementById('playtitle');
-            playtitleic.classList.toggle('playon');
-            if (playtitleic.classList.contains('playon')) {
+            if (stateSelection) {
+                var playtitleic = document.getElementById('playtitle');
+                player.start(undefined, selectedRange[0], selectedRange[1]-selectedRange[0]);
+                startTime = Tone.now();
+                animate_slice();
                 playtitleic.classList.toggle('playon');
-            } else {
-                playtitleic.classList.toggle('playon');
+                setTimeout(function() {
+                    playtitleic.classList.toggle('playon');
+                    cancelAnimationFrame(animationId_sliced);
+                    var ctx = canvas_sliced_cursor.getContext('2d');
+                    ctx.clearRect(0, 0, canvas_sliced_cursor.width, canvas_sliced_cursor.height);
+                }, (selectedRange[1]-selectedRange[0])*1000);
             }
         });
 
@@ -197,9 +224,10 @@
         /**
             * Update the volume value of the audio source when the volume slider change its value.
         */
-        /*volumeSlider.addEventListener('input', function(event) {
-            player.volume.value = parseFloat(volumeSlider.value);
-        });*/
+        slider.addEventListener('input', function(event) {
+            console.log(parseFloat(slider.value));
+            player.volume.value = parseFloat(slider.value);
+        });
 
         /**
             * Function that load the audio file in the buffer and create all the variables for the audio processing.
@@ -284,8 +312,14 @@
                 clear();
                 player.dispose();
                 meter.dispose();
+                clearSlice();
                 source = context.createBufferSource();
             }
+        }
+
+        function clearSlice(){
+            var ctx = canvas_slice.getContext('2d');
+            ctx.clearRect(0, 0, canvas_slice.width, canvas_slice.height);
         }
 
         /**
@@ -304,9 +338,11 @@
             Tone.start();
             player.start();                
             startTime = Tone.now();
-            const dataArray = new Uint8Array(player.buffer.length);
             drawMeter();
             animate();
+            setTimeout(function() {
+                stopAnimation();
+            }, player.buffer.duration*1000);
         }
 
         /**
@@ -314,10 +350,9 @@
         */
         function pauseAudioBuffer() {                                     
             if (player.state == "started") {
-                Tone.Transport.pause();
-            } else if (player.state == "stopped") {
-                Tone.Transport.start();
+                player.stop();
             }
+            stopAnimation();
         }
 
         /**
@@ -330,6 +365,7 @@
                 player.start(undefined, index[note], index[note+1]-index[note]);
                 startTime = Tone.now() - index[note];
                 animate();
+                drawMeter();
             }                  
         }
        
@@ -348,8 +384,25 @@
         */
         function animate() {
             var currentTime = Tone.now() - startTime;
+            var ctx = canvas_sliced_cursor.getContext('2d');
+            if ((currentTime >= selectedRange[0] && currentTime <= selectedRange[1]) && stateSelection) 
+                drawCursor_sliced(currentTime-selectedRange[0]);
+            else ctx.clearRect(0, 0, canvas_sliced_cursor.width, canvas_sliced_cursor.height);
+            if (currentTime == selectedRange[1]) {
+                stopAnimation();
+            }
             drawCursor(currentTime);
             animationId = requestAnimationFrame(animate);
+        }
+
+        /**
+            * The animation of the sliced cursor.
+        */
+        function animate_slice() {
+            var currentTime = Tone.now() - startTime;
+            drawCursor_sliced(currentTime);
+            drawCursor(currentTime+selectedRange[0]);
+            animationId_sliced = requestAnimationFrame(animate_slice);
         }
         
         /**
@@ -363,9 +416,20 @@
             ctx.beginPath();
             ctx.strokeStyle = "rgba(0,0,255, 0.6)"; 
             ctx.lineWidth=2;
-            
             ctx.moveTo(position, 2);
             ctx.lineTo(position, canvas_cursor.height);
+            ctx.stroke();
+        }
+
+        function drawCursor_sliced(time){
+            var position = (time / (selectedRange[1] - selectedRange[0])) * canvas_sliced_cursor.width;
+            var ctx = canvas_sliced_cursor.getContext('2d');
+            ctx.clearRect(0, 0, canvas_sliced_cursor.width, canvas_sliced_cursor.height);
+            ctx.beginPath();
+            ctx.strokeStyle = "rgba(255, 255, 0, 1)"; 
+            ctx.lineWidth=2;
+            ctx.moveTo(position, 2);
+            ctx.lineTo(position, canvas_sliced_cursor.height + 1);
             ctx.stroke();
         }
 
@@ -412,6 +476,9 @@
             ctx.stroke();
         }
 
+        /**
+         * Function that reset the knobs to the initial position and their values to 0.
+         */
         function reset_knobs(){
             knob_attack.style.transform = 'rotate(-116deg)';
             knob_release.style.transform = 'rotate(-116deg)';
@@ -460,16 +527,19 @@
                 transientTitle.style.color = '#FF9E00';
                 manualTitle.style.color = '#000000';
                 adaptive = true;
+                stateSelection = false;
                 index = [];
                 addIndexInOrder(0);
                 addIndexInOrder(player.buffer.duration);
                 clear();
+                clearSlice();
                 detectOnset(player.buffer);
                 restoreLines();
             } else {                                                            //if the toggle switch is on manual mode
                 manualTitle.style.color = '#FF9E00';
                 transientTitle.style.color = '#000000';
                 adaptive = false;
+                stateSelection = false;
                 index = [];
                 addIndexInOrder(0);
                 addIndexInOrder(player.buffer.duration);
@@ -670,9 +740,22 @@
         function stop() {
             if (player.state === 'started') {
                 player.stop();
-                cancelAnimationFrame(animationId);
-                cancelAnimationFrame(meterId);
             }
+            stopAnimation();
+        }
+
+        /**
+            * Function that stops all the animations. 
+        */
+        function stopAnimation(){
+            cancelAnimationFrame(animationId);
+            cancelAnimationFrame(animationId_sliced);
+            var ctx = canvas_sliced_cursor.getContext('2d');
+            var ctxa = canvas_cursor.getContext('2d');
+            ctx.clearRect(0, 0, canvas_sliced_cursor.width, canvas_sliced_cursor.height);
+            ctxa.clearRect(0, 0, canvas_cursor.width, canvas_cursor.height);
+            cancelAnimationFrame(meterId);
+            volumeBar.style.width = 0 + '%';
         }
 
         /**
@@ -680,12 +763,13 @@
         */
         function erase(){
             eraser = !eraser;
+            var trashButton = document.getElementById('onsetTrash');
             if (eraser){
+                trashButton.style.backgroundColor = '#93a2af';
                 var ctx = canvas_draw.getContext('2d');
                 ctx.clearRect(0, 0, canvas_draw.width, canvas_draw.height);
-                document.getElementById('eraseButton').style.backgroundColor = 'blue';
             } else {
-                document.getElementById('eraseButton').style.backgroundColor = 'grey';
+                trashButton.style.backgroundColor = '';
             }
         }
 
@@ -814,8 +898,8 @@
                         label_pitch.textContent = (value - 50) + "%";
                         break;
                     case 'knob_sensitivity':
-                        thresholdValue = map_value(value, 1000, 2000);
-                        label_sensitivity.textContent = map_value(value, 25, 100) + "%";
+                        thresholdValue = map_value(value, 1000, 3200);
+                        label_sensitivity.textContent = map_value(value, 10, 100) + "%";
                         break;
                 }
                 knob.style.transform = `rotate(${result}deg)`;
@@ -833,10 +917,10 @@
         }
 
         /**
-         * It manages the end of the knob rotation
+            * It manages the end of the knob rotation
         */
         function endRotation(){
-            if (activeKnob.id === 'knob_sensitivity' && adaptive && loaded) {
+            if (activeKnob != null && activeKnob.id === 'knob_sensitivity' && adaptive && loaded) {
                 index = [];
                 addIndexInOrder(0);
                 addIndexInOrder(player.buffer.duration);
@@ -849,39 +933,43 @@
         }
 
         /**
-         * Function that manages the animation of the volume bar
+            * Function that manages the animation of the volume bar
         */
         function drawMeter(){
-            console.log(meter.getValue());
-            requestAnimationFrame(drawMeter);
-            volumeBar.style.width = (100 * Math.pow(10, meter.getValue() / 20)) + '%';
+            let value = ((100 * Math.pow(10, meter.getValue() / 20)));
+            if (value > 100) value = 100;
+            else volumeBar.style.width = value + '%';
+            meterId = requestAnimationFrame(drawMeter);
         }
 
-        //DA SISTEMARE
-        document.getElementById('lordIcon').addEventListener('click', function () {
-            document.getElementById('fileInput').click();
-             });
-
-            
-            // controllo play preview
-
-
-            
-            
-            // Aggiungi l'evento di fine riproduzione per ripristinare lo stato
-            document.getElementById('play').addEventListener('ended', function() {  //DA AGGIUNGERE
-                var playtitleic = document.getElementById('playtitleic');
-                // Rimuovi la classe "illuminato" quando la riproduzione è completata
-                playtitleic.classList.remove('playon');
+        function togglePopup() {
+            popup.classList.toggle("show");
+            overlay.classList.toggle("show");
+        }
+    
+        // Event listener for the info icon
+        document.getElementById("info").addEventListener("click", function(event) {
+                event.stopPropagation();
+                togglePopup();
+        });
+    
+        // Event listener to close popup when clicking outside
+        document.addEventListener("click", function(event) {
+               
+            if (popup.classList.contains("show") && !popup.contains(event.target) && event.target.id !== 'info') {
+                popup.classList.remove("show");
+                overlay.classList.remove("show");
+            }
+         });
+    
+        // Event listener to close popup when clicking the close button
+        document.getElementById("closePopup").addEventListener("click", function(event) {
+                event.stopPropagation();
+                togglePopup();
+                popup.classList.remove("show");
+                overlay.classList.remove("show");
             });
 
-   /* var slider = document.getElementById("myRange");                                            //DA AGGIUNGERE
-    var output = document.getElementById("demo");
-    output.innerHTML = slider.value;
-
-    slider.oninput = function() {
-         output.innerHTML = this.value;
-    } */
     });
 
     

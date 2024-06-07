@@ -64,14 +64,6 @@
              </lord-icon>
 
              <lord-icon
-               src="https://cdn.lordicon.com/eouimtlu.json"
-                 trigger="hover"
-                 colors="primary:#ffffff"
-                 style="width:38px;height:38px"
-                 id="midiSelect">
-             </lord-icon>
-
-             <lord-icon
                  src="https://cdn.lordicon.com/nqtddedc.json"
                  trigger="hover"
                  state="hover-cross-3"
@@ -91,6 +83,7 @@
              <lord-icon
                  src="https://cdn.lordicon.com/aklfruoc.json"
                  trigger="hover"
+                 colors="#000000"
                  style="width:23px;height:23px"
                  id="reverse1">
              </lord-icon>
@@ -98,10 +91,12 @@
              <lord-icon
                  src="https://cdn.lordicon.com/aklfruoc.json"
                  trigger="hover"
+                 colors="#000000"
                  style="width:23px;height:23px"
                  id="reverse2">
              </lord-icon>
 
+             <!--Pause Button-->
              <lord-icon
                  src="https://cdn.lordicon.com/ptvmrrcc.json"
                  trigger="hover"
@@ -117,10 +112,6 @@
                  style="width:38px;height:38px"
                  id="info">
              </lord-icon>
-
-            <div id="midiSelect" style="display: none;">"  
-                <select id="midiSelect"></select>
-            </div> 
 
             <div id="fileNameDisplay"></div>
 
@@ -149,7 +140,7 @@
 
             <!--Sensitivity label-->
             <div id="Sens_Lab">
-                <span id="sens_val">25%</span>
+                <span id="sens_val">10%</span>
             </div>
     
             <!--Attack label-->
@@ -194,18 +185,32 @@
 
             <!--Sliced Waveform-->
             <div id="sliced_sample">
-                <canvas id="waveform_sliced" width="443" height="206" style="position: absolute"></canvas>
+                <canvas id="waveform_sliced" width="440" height="198" style="position: absolute; top: 8px; left: 2px;"></canvas>
+                <canvas id="sliced_cursor" width="440" height="198" style="position: absolute; top: 8px; left: 2px;"></canvas>
             </div>
     
             <!--Volume slider-->
             <div class="slidecontainer">
-                <input type="range" min="0" max="100" value="65" class="slider" id="myRange">
+                <input type="range" min="-40" max="15" value="-0" class="slider" id="myRange">
             </div>
 
             <!-- level meter --->
             <div id="meter">
                 <div id="volume-bar"></div>
             </div>
+
+            <div class="popup">
+                <span class="popuptext" id="myPopup">
+                    <span class="close" id="closePopup">&times;</span> <br> <img src= "assets/favicon.png" id="info_img"><br> CREDITS: <br><br> ACTAM Project designed by Andrea Arosio, Stefano Morano, Marco Roncoroni</span>
+            </div>
+    
+            <div class="overlay" id="overlay"></div>
+
+            <select id="midiSelection">
+                <option value="0">Select MIDI</option>
+                <option value="1">MIDI 1</option>
+                <option value="2">MIDI 2</option>
+            </select>
         </div>
     </body>
 </html>
