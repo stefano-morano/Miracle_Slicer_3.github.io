@@ -28,18 +28,18 @@ h1 {
   height: 550px;
   border: 0px solid black;
   border-radius: 0px;
-  top: 52%;
+  top: 450px;
   left: 50%;
   transform: translate(-50%, -50%);
 }
   
 #logo{
-  margin:0px auto;
-  display: block;
+  margin:70px auto;
+  left: 680px;
   text-align: center;
   width: 90px;
   height: 90px;
-  position: relative;
+  position: absolute;
   top: 5px;
 }
 
@@ -333,10 +333,10 @@ cursor: pointer;
 }
 
 #midiSelection{
-  position: relative;
+  position: absolute;
   height: 25px;
   width: 130px;
-  top: -420px;
+  top: 25px;
   left: 732px;
   color: rgb(255, 255, 255);
   border: 2px solid #fff;
