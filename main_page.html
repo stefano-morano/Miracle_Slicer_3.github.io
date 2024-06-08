@@ -16,6 +16,7 @@
     <body>
         <h1>Miracle Slicer III</h1>
         <img id="logo" src="assets/favicon.png" alt="logo">
+        
         <!--Whole slicer rectangle container-->
         <div id="slicer">             
             
@@ -44,8 +45,13 @@
                 <div class="knob" id="knob_pan"></div> 
             </div>
 
-            <input type="file" accept="audio/*" id="fileInput" style="display:none">            <!--File input for audio file selection-->
+            <!--File input for audio file selection-->
+            <input type="file" accept="audio/*" id="fileInput" style="display:none">      
+            
+            <!--Link to the lord icon javascript-->
             <script src="https://cdn.lordicon.com/lordicon.js"></script>  
+
+            <!--Icon for file input-->
             <lord-icon                                                                        
                 src="https://cdn.lordicon.com/jkzgajyr.json"
                 trigger="hover"
@@ -54,7 +60,7 @@
                 id="lordIcon">
             </lord-icon>    
 
-             <!--Icon for file input-->
+             <!--Icon for file load button-->
              <lord-icon
                  src="https://cdn.lordicon.com/smwmetfi.json"
                  trigger="hover"
@@ -63,6 +69,7 @@
                  id="lordIcon2">
              </lord-icon>
 
+             <!--Icon for the remove button-->
              <lord-icon
                  src="https://cdn.lordicon.com/nqtddedc.json"
                  trigger="hover"
@@ -72,6 +79,7 @@
                  id="trash">
              </lord-icon>
 
+             <!--Icon for play button-->
              <lord-icon
                  src="https://cdn.lordicon.com/aklfruoc.json"
                  trigger="hover"
@@ -191,7 +199,7 @@
     
             <!--Volume slider-->
             <div class="slidecontainer">
-                <input type="range" min="-40" max="15" value="-0" class="slider" id="myRange">
+                <input type="range" min="-40" max="15" value="0" class="slider" id="myRange">
             </div>
 
             <!-- level meter --->

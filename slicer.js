@@ -1,6 +1,6 @@
     var context = new (window.AudioContext || window.webkitAudioContext)();                         // Create an audio context
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {                                     // Wait for the whole page to be loaded
 
         var animationId; // The ID of the animation frame
         var animationId_sliced; // The ID of the animation frame
@@ -22,12 +22,12 @@
         var canvas_draw = document.getElementById('draw'); // The selection canvas
         var canvas_line = document.getElementById('line'); // The canvas of the transient lines
         var canvas_cursor = document.getElementById('cursor'); // The canvas of the moving cursor
-        var canvas_slice = document.getElementById('waveform_sliced');
-        var canvas_sliced_cursor = document.getElementById('sliced_cursor');
-        var popup = document.getElementById("myPopup");
-        var overlay = document.getElementById("overlay");
-        var slider = document.getElementById("myRange");
-        var activeKnob = null;
+        var canvas_slice = document.getElementById('waveform_sliced'); // The sliced waveform canvas
+        var canvas_sliced_cursor = document.getElementById('sliced_cursor'); // The sliced cursor canvas
+        var popup = document.getElementById("myPopup"); // The popup element
+        var overlay = document.getElementById("overlay"); // The overlay element
+        var slider = document.getElementById("myRange"); // The volume slider
+        var activeKnob = null; // The instance of active knob
 
         const knob_sensitivity = document.getElementById('knob_sensitivity');
         const label_sensitivity = document.getElementById('sens_val');
@@ -43,6 +43,7 @@
         const knob_pan = document.getElementById('knob_pan');
         const label_pan = document.getElementById('pan_val');
         const volumeBar = document.getElementById('volume-bar');
+
         knob_sensitivity.addEventListener('mousedown', function (event) {                         //Event handler that prevent the context menu to appear when the right click is pressed.
             event.preventDefault();
             startRotation(event);
@@ -163,7 +164,6 @@
                         drawRectangle((index[x]/player.buffer.duration)*canvas_draw.width, (index[x+1]/player.buffer.duration)*canvas_draw.width);
                         drawSlice(secondsToBufferIndex(selectedRange[0]), secondsToBufferIndex(selectedRange[1]));
                         stateSelection = true;
-                        console.log(selectedRange);
                     }
                 }
             } else if (event.button === 2) {                //right click
@@ -173,7 +173,6 @@
                             var ctx = canvas_line.getContext('2d');
                             ctx.clearRect(((index[i]/player.buffer.duration)*canvas_line.width)-2, 0, 4, canvas_line.height);
                             index.splice(i, 1);
-                            console.log(index);
                         }
                     }
                 } else {
@@ -196,15 +195,21 @@
         document.getElementById('playsect').addEventListener('click', function() {
             if (stateSelection) {
                 var playtitleic = document.getElementById('playtitle');
+                if (player.state === 'started') {
+                    stop();
+                    playtitleic.classList.toggle('playon');
+                    return;
+                }
                 player.start(undefined, selectedRange[0], selectedRange[1]-selectedRange[0]);
                 startTime = Tone.now();
                 animate_slice();
+                drawMeter();
                 playtitleic.classList.toggle('playon');
                 setTimeout(function() {
-                    playtitleic.classList.toggle('playon');
-                    cancelAnimationFrame(animationId_sliced);
-                    var ctx = canvas_sliced_cursor.getContext('2d');
-                    ctx.clearRect(0, 0, canvas_sliced_cursor.width, canvas_sliced_cursor.height);
+                    if (playtitleic.classList.contains('playon')) {
+                        playtitleic.classList.toggle('playon');
+                        stopAnimation();
+                    }
                 }, (selectedRange[1]-selectedRange[0])*1000);
             }
         });
@@ -225,7 +230,6 @@
             * Update the volume value of the audio source when the volume slider change its value.
         */
         slider.addEventListener('input', function(event) {
-            console.log(parseFloat(slider.value));
             player.volume.value = parseFloat(slider.value);
         });
 
@@ -233,7 +237,6 @@
             * Function that load the audio file in the buffer and create all the variables for the audio processing.
         */
         async function loadFile() {                                                       
-            console.log("chiamata loadFile");
             removeFile();
             clearWaveform();
             var fileInput = document.getElementById('fileInput');
@@ -313,10 +316,14 @@
                 player.dispose();
                 meter.dispose();
                 clearSlice();
+                slider.value = 0;
                 source = context.createBufferSource();
             }
         }
 
+        /**
+            * Function that clear the slice waveform canvas when it is called.
+        */
         function clearSlice(){
             var ctx = canvas_slice.getContext('2d');
             ctx.clearRect(0, 0, canvas_slice.width, canvas_slice.height);
@@ -366,6 +373,9 @@
                 startTime = Tone.now() - index[note];
                 animate();
                 drawMeter();
+                setTimeout(function() {
+                    stopAnimation();
+                }, (index[note+1]-index[note])*1000);
             }                  
         }
        
@@ -421,6 +431,10 @@
             ctx.stroke();
         }
 
+        /**
+            * Function that draw the cursor on the sliced waveform in a specified time
+            * @input {number} the time in seconds of the cursor position.
+        */
         function drawCursor_sliced(time){
             var position = (time / (selectedRange[1] - selectedRange[0])) * canvas_sliced_cursor.width;
             var ctx = canvas_sliced_cursor.getContext('2d');
@@ -673,7 +687,6 @@
             * Event handler that draw the selection rectangle when the mouse is clicked.
         */
         function drawRectangle(x, y){  
-            console.log("disegna rettangolo");
             ctx = canvas_draw.getContext('2d');
             ctx.clearRect(0, 2, canvas_draw.width, canvas_draw.height);
             ctx.fillStyle = 'rgba(255, 255, 0, 0.5)'; // Rettangolo giallo trasparente
@@ -724,7 +737,6 @@
             * @input {number} the x position of the line.
         */
         function drawVerticalLine(x) {
-            console.log("disegna linea verticale");
             var ctx = canvas_line.getContext('2d');
             ctx.beginPath();
             ctx.strokeStyle = 'rgb(255, 165, 0)'; // Linea arancione
@@ -828,7 +840,6 @@
                 }
                 currentPos += hopSize;
             }
-            console.log(index.length-1);
         }
 
         /**

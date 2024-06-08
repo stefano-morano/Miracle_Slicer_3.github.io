@@ -39,7 +39,7 @@ h1 {
   text-align: center;
   width: 90px;
   height: 90px;
-  position: absolute;
+  position: fixed;
   top: 5px;
 }
 
