@@ -13,7 +13,7 @@ Use the left mouse button to draw a slice and the right one to select regions. Y
 
 With the toggle switch set in TRANSIENT MODE, you can active the automatic onset recogniser and modify the threshold with the relative knob.
 
-You can also change the pitch, the pan and the master volume of each slice.
+You can also change the pitch, the pan and the master volume of the song/audio.
 
 When you have your slicer set up, you can play the loops with your computer keyboard or with a MIDI keyboard by choosing it via the drop-down menu in the top right corner.
 
