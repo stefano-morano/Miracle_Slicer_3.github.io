@@ -1,3 +1,5 @@
+/* Style for main title and logo + GUI loading*/
+
 @font-face {
     font-family: 'fonttitle';
     src: url('assets/digital-7.ttf') format('truetype');
@@ -33,22 +35,25 @@ h1 {
   transform: translate(-50%, -50%);
 }
   
-#logo{
-  margin:70px auto;
-  left: 680px;
-  text-align: center;
+#logo {
+  margin: 0; 
+  left: 50%; 
+  position: fixed;
   width: 90px;
   height: 90px;
-  position: fixed;
-  top: 5px;
+  position: relative;
+  transform: translate(-50%);
+  top: 0px;
 }
 
-#container_logo{
-  position: absolute;
-  top: 0;
-  left: 0;
+#container_logo {
+  position: fixed;
+  top: 50px; 
+  left: 50px; 
   text-align: center;
 }
+
+/* Style for knobs including positioning, gradients, shadows and decorative effects */
 
 .knob_container{
   position: absolute;
@@ -136,7 +141,8 @@ h1 {
   box-shadow: 0px 0px 4px green, inset 0px 0px 4px green;
 }
 
-#container_sensitivity{
+
+#container_sensitivity{                         /* Positioning of each knob */
   transform: translate(1183%, 1030%);
 }
 
@@ -164,21 +170,18 @@ h1 {
   box-shadow: 0px 0px 4px orange, inset 0px 0px 4px orange;
 }
 
+/* Styles for the icons and the page background */
+
 #info_img{
   width: 150px;
   height: 150px;
 }
 
 body {
-/* Imposta l'immagine come sfondo */
 background-image: url('assets/slicer.png'); 
-/* Specifica come l'immagine deve essere visualizzata */
 background-size: cover; 
-/* Centra l'immagine orizzontalmente e verticalmente */
 background-position: center; 
-/* Fissa lo sfondo in modo che non scorra con la pagina */
 background-attachment: fixed; 
-/* Opzione per colorare lo sfondo se l'immagine non è disponibile */
 background-color: #cccccc; 
 }
 
@@ -207,6 +210,8 @@ background-color: #cccccc;
   left: 895px;
 }
 
+/* Style for the file loading & controls header + waveform visualization */
+
 #fileNameDisplay{
   position: absolute;
   top: 28px;
@@ -215,11 +220,11 @@ background-color: #cccccc;
   padding: 0;
   color: rgb(0, 0, 0);
   font-size: 20px;
-  font-family: 'fonttitle', sans-serif; /* Usa il nome del font specificato in font-family */
+  font-family: 'fonttitle', sans-serif;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis; /* Aggiunto per i puntini di sospensione */
-  max-width: 373px; /* Sostituisci con la tua lunghezza desiderata in pixel */
+  text-overflow: ellipsis; 
+  max-width: 373px; 
 }
 
 
@@ -229,7 +234,7 @@ background-color: #cccccc;
 }
 
 #waveformCanvas{
-  background-color: rgba(0, 0, 0, 0); /* Imposta l'alpha a 0 per uno sfondo trasparente */
+  background-color: rgba(0, 0, 0, 0); 
 }
 
 #sliced_sample{
@@ -249,6 +254,9 @@ background-color: #cccccc;
   top: 18px;
   left: 678px;
 }
+
+
+/* Style for the PREVIEW section, including button text and icons */
 
 #playsect{
 position: relative;
@@ -291,9 +299,9 @@ cursor: pointer;
 
 #playtitle{
   position: absolute;
-  bottom: 9px; /* Distanza dal fondo in pixel */
-  left: 43px; /* Posiziona al centro rispetto all'asse orizzontale */
-  
+  bottom: 9px; 
+  left: 43px; 
+
   font-size: 20px;
   font-family: 'Arial', Times, serif;
   cursor:pointer;
@@ -301,8 +309,8 @@ cursor: pointer;
 
 #reversetitle{
   position: absolute;
-  bottom: 9px; /* Distanza dal fondo in pixel */
-  left: 240px; /* Posiziona al centro rispetto all'asse orizzontale */
+  bottom: 9px; 
+  left: 240px; 
   
   font-size: 20px;
   font-family: 'Arial', Times, serif;
@@ -311,28 +319,28 @@ cursor: pointer;
 
 #playtitleic{
   position: absolute;
-  bottom: 5px; /* Distanza dal fondo in pixel */
-  left: 10%; /* Posiziona al centro rispetto all'asse orizzontale */
+  bottom: 5px; 
+  left: 10%; 
   cursor: pointer;
 }
 
 #reverse1{
   position: absolute;
-  bottom: 9px; /* Distanza dal fondo in pixel */
-  left: 36%; /* Posiziona al centro rispetto all'asse orizzontale */
+  bottom: 9px; 
+  left: 36%; 
   cursor: pointer;
   transform: rotate(180deg);
 }
 
 #reverse2{
   position: absolute;
-  bottom: 9px; /* Distanza dal fondo in pixel */
-  left: 37.5%; /* Posiziona al centro rispetto all'asse orizzontale */
+  bottom: 9px; 
+  left: 37.5%; 
   cursor: pointer;
   transform: rotate(180deg);
 }
 
-#midiSelection{
+#midiSelection{             /* In the top header */
   position: absolute;
   height: 25px;
   width: 130px;
@@ -346,7 +354,7 @@ cursor: pointer;
 }
 
 .playon {
-   color: #32E0C4; /* Cambia il colore del testo quando illuminato */
+   color: #32E0C4; 
 }
 
 #playsect.playing{
@@ -361,10 +369,13 @@ cursor: pointer;
   background-color: #2d2f35;
 }
 
+/* Style for the SLICE section (mode selector) */
+
   /* To hide the checkbox */
 #checkboxInput {
    display: none;
 }
+
 
 .toggleSwitch {
   display: flex;
@@ -441,6 +452,8 @@ cursor: pointer;
   opacity: 0.8;
 }
 
+/* Style for the MASTER section (volume slider and volume meter) */
+
 .slidecontainer {
     width: 100%;
 }
@@ -504,6 +517,8 @@ cursor: pointer;
   left: 0;
 }
 
+/* Knob labels */
+
 #Sens_Lab{
   margin-top: 425px; 
   margin-left: 507px; 
@@ -566,6 +581,8 @@ cursor: pointer;
   color: white; 
   font-size: 14px;
 }
+
+/* Style for the INFO popup*/
 
 /* Popup container info&about */
 .popup {

@@ -28,7 +28,9 @@
         var overlay = document.getElementById("overlay"); // The overlay element
         var slider = document.getElementById("myRange"); // The volume slider
         var activeKnob = null; // The instance of active knob
+        var currentNote; // The current note played
 
+        // the declation of the variables of the knobs and the labels
         const knob_sensitivity = document.getElementById('knob_sensitivity');
         const label_sensitivity = document.getElementById('sens_val');
         knob_sensitivity.style.transform = 'rotate(-116deg)';
@@ -44,23 +46,23 @@
         const label_pan = document.getElementById('pan_val');
         const volumeBar = document.getElementById('volume-bar');
 
-        knob_sensitivity.addEventListener('mousedown', function (event) {                         //Event handler that prevent the context menu to appear when the right click is pressed.
+        knob_sensitivity.addEventListener('mousedown', function (event) {                         //Event listener that prevent the context menu to appear when the right click is pressed.
             event.preventDefault();
             startRotation(event);
         });
-        knob_attack.addEventListener('mousedown', function (event) {                              //Event handler that prevent the context menu to appear when the right click is pressed.
+        knob_attack.addEventListener('mousedown', function (event) {                              //Event listener that prevent the context menu to appear when the right click is pressed.
             event.preventDefault();
             startRotation(event);
         });
-        knob_release.addEventListener('mousedown', function (event) {                             //Event handler that prevent the context menu to appear when the right click is pressed.
+        knob_release.addEventListener('mousedown', function (event) {                             //Event listener that prevent the context menu to appear when the right click is pressed.
             event.preventDefault();
             startRotation(event);
         });
-        knob_pitch.addEventListener('mousedown', function (event) {                               //Event handler that prevent the context menu to appear when the right click is pressed.
+        knob_pitch.addEventListener('mousedown', function (event) {                               //Event listener that prevent the context menu to appear when the right click is pressed.
             event.preventDefault();
             startRotation(event);
         });
-        knob_pan.addEventListener('mousedown', function (event) {                                 //Event handler that prevent the context menu to appear when the right click is pressed.
+        knob_pan.addEventListener('mousedown', function (event) {                                 //Event listener that prevent the context menu to appear when the right click is pressed.
             event.preventDefault();
             startRotation(event);
         });
@@ -101,7 +103,7 @@
 
         getMidi();                                                                                  //calls the function to scan midi inputs as first thing
         
-        document.getElementById('lordIcon').addEventListener('click', function () {
+        document.getElementById('lordIcon').addEventListener('click', function () {                 //adds event listener to the "choose file" button and calls the respective function
             document.getElementById('fileInput').click();
         });
 
@@ -139,7 +141,7 @@
             stop();
         }); 
 
-        draw.addEventListener('mousedown', function(event) {                                        //Event handler that catch the left and right click of the mouse on the waveform.
+        draw.addEventListener('mousedown', function(event) {                                        //Event listener that catch the left and right click of the mouse on the waveform.
             var rect = canvas_waveform.getBoundingClientRect();
             var mouseX = event.clientX - rect.left;
             var bufferIndex = (mouseX / canvas_waveform.width) * player.buffer.duration;
@@ -188,11 +190,11 @@
             }
         })  
         
-        document.addEventListener('contextmenu', function (event) {                                 //Event handler that prevent the context menu to appear when the right click is pressed.
+        document.addEventListener('contextmenu', function (event) {                                 //Event listener that prevent the context menu to appear when the right click is pressed.
             event.preventDefault();
         });
 
-        document.getElementById('playsect').addEventListener('click', function() {
+        document.getElementById('playsect').addEventListener('click', function() {                  //Event listener that play the selected slice and paint the relative button.
             if (stateSelection) {
                 var playtitleic = document.getElementById('playtitle');
                 if (player.state === 'started') {
@@ -214,16 +216,35 @@
             }
         });
 
-        document.getElementById('Pitch_Lab').addEventListener('click', function() {                                           //DA AGGIUNGERE
+        document.getElementById('Pitch_Lab').addEventListener('click', function() {                 //Event listener that reset the pitch value and paint the relative button when it is pressed.
             label_pitch.textContent = '0';
             pitchNode.pitch = 0;
             knob_pitch.style.transform = `rotate(${0}deg)`;
         });
 
-        document.getElementById('Pan_Lab').addEventListener('click', function() {                                           //DA AGGIUNGERE
+        document.getElementById('Pan_Lab').addEventListener('click', function() {                   //Event listener that reset the pan value and paint the relative button when it is pressed.
             label_pan.textContent = '0';
             panNode.pan.value = 0;
             knob_pan.style.transform = `rotate(${0}deg)`;
+        });
+
+        document.getElementById("info").addEventListener("click", function(event) {                 // Event listener for the info icon
+            event.stopPropagation();
+            togglePopup();
+        });
+
+        document.addEventListener("click", function(event) {                                        // Event listener to close popup when clicking outside
+            if (popup.classList.contains("show") && !popup.contains(event.target) && event.target.id !== 'info') {
+                popup.classList.remove("show");
+                overlay.classList.remove("show");
+            }
+        });
+
+        document.getElementById("closePopup").addEventListener("click", function(event) {           // Event listener to close popup when clicking the close button
+            event.stopPropagation();
+            togglePopup();
+            popup.classList.remove("show");
+            overlay.classList.remove("show");
         });
 
         /**
@@ -243,7 +264,7 @@
             var fileNameDisplay = document.getElementById('fileNameDisplay');
 
             if (!fileInput.files || fileInput.files.length === 0) {
-                alert('Seleziona un file audio prima di procedere.');
+                alert('Select an audio file.');
                 return;
             }
         
@@ -271,12 +292,12 @@
                         selectedRange[0] = 0;
                         selectedRange[1] = player.buffer.duration;
                         fileNameDisplay.textContent = truncateFileName(audioFile.name, 373);
-                        console.log('File audio caricato e salvato nel buffer: ', buffer);
+                        console.log('Audio file loaded in the buffer: ', buffer);
                         drawWaveform();
                         loaded = true;
                     },
                     function(error){
-                        alert('Errore durante la decodifica del file audio: ', error);
+                        alert('Error during loading: ', error);
                     }
                 );
             };
@@ -308,7 +329,8 @@
             if (loaded) {                                           
                 audioBuffer = null;
                 loaded = false;
-                index = [];
+                index = [0];
+                stateSelection = false;
                 selectedRange = [];
                 fileNameDisplay.textContent = ''; 
                 clearWaveform();
@@ -367,6 +389,7 @@
             * @input the index of the array to play.
         */
         function play(note) {     
+            currentNote = note;
             if (player.state === 'stopped') {
                 Tone.start();
                 player.start(undefined, index[note], index[note+1]-index[note]);
@@ -374,7 +397,8 @@
                 animate();
                 drawMeter();
                 setTimeout(function() {
-                    stopAnimation();
+                    if (currentNote === note)
+                        stopAnimation();
                 }, (index[note+1]-index[note])*1000);
             }                  
         }
@@ -567,7 +591,7 @@
         */
         function updateAttack(duration){
             if (!loaded) {
-                console.error('audioBuffer non è definito.');
+                console.error('audioBuffer is not defined.');
                 return;
             }
             if (!stateSelection){
@@ -607,7 +631,7 @@
         */
         function updateRelease(duration){
             if (!loaded) {
-                console.error('audioBuffer non è definito.');
+                console.error('audioBuffer is not defined.');
                 return;
             }
             if (!stateSelection){
@@ -655,7 +679,7 @@
         */
         function drawWaveform() {
             if (!player.buffer) {
-                console.error('audioBuffer non è definito.');
+                console.error('audioBuffer is not defined.');
                 return;
             }
 
@@ -663,7 +687,7 @@
             var bufferData = player.buffer.getChannelData(0);
             ctx.clearRect(0, 0, canvas_waveform.width, canvas_waveform.height);
             ctx.lineWidth = 0.4;
-            ctx.strokeStyle = 'rgb(0, 0, 0)'; // Onda nera
+            ctx.strokeStyle = 'rgb(0, 0, 0)'; // Black wave
             ctx.beginPath();
 
             var sliceWidth = canvas_waveform.width * 1.0 / bufferData.length;
@@ -689,7 +713,7 @@
         function drawRectangle(x, y){  
             ctx = canvas_draw.getContext('2d');
             ctx.clearRect(0, 2, canvas_draw.width, canvas_draw.height);
-            ctx.fillStyle = 'rgba(255, 255, 0, 0.5)'; // Rettangolo giallo trasparente
+            ctx.fillStyle = 'rgba(255, 255, 0, 0.5)';
             ctx.fillRect(x, 2, y - x, canvas_draw.height);
         }
 
@@ -739,7 +763,7 @@
         function drawVerticalLine(x) {
             var ctx = canvas_line.getContext('2d');
             ctx.beginPath();
-            ctx.strokeStyle = 'rgb(255, 165, 0)'; // Linea arancione
+            ctx.strokeStyle = 'rgb(255, 165, 0)';
             ctx.lineWidth=2;
             ctx.moveTo(x, 2);
             ctx.lineTo(x, canvas_line.height);
@@ -859,10 +883,9 @@
             * @returns degrees of rotation
         */
         function volumeKnob(e){
-            const knob = activeKnob; // Utilizza il knob attivo
-            if (!knob) return; // Esci se non c'è nessun knob attivo
+            const knob = activeKnob; 
+            if (!knob) return; 
             var rect = knob.getBoundingClientRect();
-    
     
             const w = knob.clientWidth / 2;
             const h = knob.clientHeight / 2;
@@ -922,7 +945,7 @@
             * @param {*} e the knob to activate
         */
         function startRotation(e){
-            activeKnob = e.target; // Imposta il knob attivo
+            activeKnob = e.target;
             window.addEventListener('mousemove', rotate);
             window.addEventListener('mouseup', endRotation);
         }
@@ -939,7 +962,7 @@
                 detectOnset(player.buffer);
                 restoreLines();
             }
-            activeKnob = null; // Resetta il knob attivo
+            activeKnob = null;
             window.removeEventListener('mousemove', rotate);
         }
 
@@ -953,33 +976,13 @@
             meterId = requestAnimationFrame(drawMeter);
         }
 
+        /**
+            * Function that manages the popup
+        */ 
         function togglePopup() {
             popup.classList.toggle("show");
             overlay.classList.toggle("show");
         }
-    
-        // Event listener for the info icon
-        document.getElementById("info").addEventListener("click", function(event) {
-                event.stopPropagation();
-                togglePopup();
-        });
-    
-        // Event listener to close popup when clicking outside
-        document.addEventListener("click", function(event) {
-               
-            if (popup.classList.contains("show") && !popup.contains(event.target) && event.target.id !== 'info') {
-                popup.classList.remove("show");
-                overlay.classList.remove("show");
-            }
-         });
-    
-        // Event listener to close popup when clicking the close button
-        document.getElementById("closePopup").addEventListener("click", function(event) {
-                event.stopPropagation();
-                togglePopup();
-                popup.classList.remove("show");
-                overlay.classList.remove("show");
-            });
 
     });
 

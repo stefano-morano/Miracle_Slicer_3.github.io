@@ -4,18 +4,18 @@
     <head>
 
         <title>Miracle Slicer 3 </title>
-        <script src="https://unpkg.com/tone"></script>
-        <link href="https://fonts.cdnfonts.com/css/corporation-games" rel="stylesheet">
+        <script src="https://unpkg.com/tone"></script>      <!--Tone.js library-->
+        <link href="https://fonts.cdnfonts.com/css/corporation-games" rel="stylesheet">     <!--Font library-->
         <meta charset="utf-8" />
-        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="style.css">    <!--Css for the slicer-->
         <link rel="icon" href="assets/favicon.png" >
-        <script src="slicer.js"> </script>
+        <script src="slicer.js"> </script>  <!--Javascript for the slicer-->
         
     </head>
 
     <body>
         <h1>Miracle Slicer III</h1>
-        <img id="logo" src="assets/favicon.png" alt="logo">
+        <img id="logo" src="assets/favicon.png">
         
         <!--Whole slicer rectangle container-->
         <div id="slicer">             
@@ -88,6 +88,7 @@
                  id="play">
              </lord-icon>
 
+             <!--Icons for the reverse button-->
              <lord-icon
                  src="https://cdn.lordicon.com/aklfruoc.json"
                  trigger="hover"
@@ -113,6 +114,7 @@
                  id="pause">
              </lord-icon>
 
+             <!--Info Button-->
              <lord-icon
                  src="https://cdn.lordicon.com/yxczfiyc.json"
                  trigger="hover"
@@ -121,6 +123,7 @@
                  id="info">
              </lord-icon>
 
+            <!--File Title section-->
             <div id="fileNameDisplay"></div>
 
             <!--Main Waveform-->
@@ -131,14 +134,18 @@
                 <canvas id="draw" width="945" height="206" style="position: absolute"></canvas>
             </div>
 
+            <!--Icon for preview play button-->
             <lord-icon
                 src="https://cdn.lordicon.com/aklfruoc.json"
                 colors="primary:#0a0b0e"
                 style="width:23px;height:23x"
                 id="playtitleic">
             </lord-icon>
+
             <button id="playsect"></button>
+
             <button id="reversesect"></button>
+
             <div id="playtitle">
                 PLAY
             </div>
@@ -207,6 +214,7 @@
                 <div id="volume-bar"></div>
             </div>
 
+            <!--Popup section-->
             <div class="popup">
                 <span class="popuptext" id="myPopup">
                     <span class="close" id="closePopup">&times;</span> <br> <img src= "assets/favicon.png" id="info_img"><br> CREDITS: <br><br> ACTAM Project designed by Andrea Arosio, Stefano Morano, Marco Roncoroni</span>
@@ -214,11 +222,8 @@
     
             <div class="overlay" id="overlay"></div>
 
-            <select id="midiSelection">
-                <option value="0">Select MIDI</option>
-                <option value="1">MIDI 1</option>
-                <option value="2">MIDI 2</option>
-            </select>
+            <!--MIDI selection-->
+            <select id="midiSelection"></select>
         </div>
     </body>
 </html>
