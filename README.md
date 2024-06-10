@@ -18,6 +18,13 @@ You can also change the pitch, the pan and the master volume of the song/audio.
 
 When you have your slicer set up, you can play the loops with your computer keyboard or with a MIDI keyboard by choosing it via the drop-down menu in the top right corner.
 
+
+## CHALLENGES ENCOUNTERED
+
+Our most difficult challenge was to implement the adaptive threshold recognition that permits to find the transients in our song. Due to its complexity the tool requires a bit time to process all the audio buffer and to apply the DFT.
+
+
+
 ### WARNING
  You have to connect your midi keyboard before the use of Miracle Slicer 3: if you connect it while you are in the website, you have to refresh it.
 
