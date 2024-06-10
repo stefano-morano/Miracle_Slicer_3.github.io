@@ -25,7 +25,7 @@ Our most difficult challenge was to implement the adaptive threshold recognition
 
 
 
-### WARNING
+## WARNING
  You have to connect your midi keyboard before the use of Miracle Slicer 3: if you connect it while you are in the website, you have to refresh it.
 
 ## AUTHORS 
