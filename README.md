@@ -4,6 +4,7 @@
 ## INTRODUCTION
 Audio Slicer for the ACTAM project at Politecnico di Milano.
 Made using HTML, CSS, JavaScript and the Tone.js library to manipulate the audio Buffer.
+The graphic interface is designed ad hoc by using icons from the LordIcon database and knobs created entirely by us.
 
 ## INSTRUCTION
 ![Screenshot](assets/screen.png)
